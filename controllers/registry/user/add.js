@@ -116,6 +116,16 @@ module.exports = function* addUser() {
     return;
   }
 
+  // disable add new user
+  if(!config.anonymousVisit){
+    this.status = 405;
+    this.body = {
+      error: 'disabled',
+      reason: 'Add new user has been disabled.'
+    };
+    return;
+  }
+
   // add new user
   var result = yield* userService.add(user);
   this.etag = '"' + result.rev + '"';
