@@ -17,6 +17,7 @@
 
 var limit = require('../middleware/limit');
 var login = require('../middleware/login');
+var login4Get = require('../middleware/login_for_get').login4Get;
 var publishable = require('../middleware/publishable');
 var syncByInstall = require('../middleware/sync_by_install');
 var editable = require('../middleware/editable');
@@ -61,12 +62,12 @@ function routes(app) {
 
   // module
   // scope package: params: [$name]
-  app.get(/^\/(@[\w\-\.]+\/[\w\-\.]+)$/, syncByInstall, listAllVersions);
+  app.get(/^\/(@[\w\-\.]+\/[\w\-\.]+)$/, login4Get, syncByInstall, listAllVersions);
   // scope package: params: [$name, $version]
-  app.get(/^\/(@[\w\-\.]+\/[\w\-\.]+)\/([\w\.\-]+)$/, syncByInstall, getOneVersion);
+  app.get(/^\/(@[\w\-\.]+\/[\w\-\.]+)\/([\w\.\-]+)$/, login4Get, syncByInstall, getOneVersion);
 
-  app.get('/:name', syncByInstall, listAllVersions);
-  app.get('/:name/:version', syncByInstall, getOneVersion);
+  app.get('/:name', login4Get, syncByInstall, listAllVersions);
+  app.get('/:name/:version', login4Get, syncByInstall, getOneVersion);
 
   // try to add module
   app.put(/^\/(@[\w\-\.]+\/[\w\-\.]+)$/, login, publishable, savePackage);

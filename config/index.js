@@ -237,6 +237,11 @@ var config = {
 
   // badge subject on http://shields.io/
   badgeSubject: 'cnpm',
+
+  // If config.anonymousVisit set to false
+  // then even get method will need authorization.
+  //This will strict only login users can list or install packages.
+  anonymousVisit: true
 };
 
 // load config/config.js, everything in config.js will cover the same key in index.js
