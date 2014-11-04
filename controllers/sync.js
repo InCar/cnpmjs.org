@@ -32,6 +32,7 @@ exports.sync = function* () {
       error: 'disabled',
       reason: 'config.syncModel is none'
     };
+    return;
   }
 
   if (publish && !this.user.isAdmin) {
