@@ -17,6 +17,7 @@
 var debug = require('debug')('cnpmjs.org:controllers:sync');
 var Log = require('../services/module_log');
 var SyncModuleWorker = require('./sync_module_worker');
+var config = require('../config');
 
 exports.sync = function* () {
   var username = this.user.name || 'anonymous';
@@ -24,6 +25,15 @@ exports.sync = function* () {
   var publish = this.query.publish === 'true';
   var noDep = this.query.nodeps === 'true';
   debug('sync %s with query: %j', name, this.query);
+
+  if(config.syncModel === 'none'){
+    this.status = 405;
+    this.body = {
+      error: 'disabled',
+      reason: 'config.syncModel is none'
+    };
+  }
+
   if (publish && !this.user.isAdmin) {
     this.status = 403;
     this.body = {
