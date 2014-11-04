@@ -29,6 +29,9 @@
         if (err.status === 404) {
           message += 'Package ' + name + ' not exist in official registry.';
         }
+        if (err.status === 405){
+          message += 'sync has been disabled.';
+        }
         if (err.status === 500) {
           message += 'Please refresh to sync one more time.';
         }
