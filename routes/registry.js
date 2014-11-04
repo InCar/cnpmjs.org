@@ -82,10 +82,10 @@ function routes(app) {
   app.put('/:name/:tag', login, editable, tag);
 
   // need limit by ip
-  app.get(/^\/(@[\w\-\.]+\/[\w\-\.]+)\/download\/(@[\w\-\.]+\/[\w\-\.]+)$/, limit, downloadPackage);
-  app.get('/:name/download/:filename', limit, downloadPackage);
-  app.get(/^\/(@[\w\-\.]+\/[\w\-\.]+)\/\-\/(@[\w\-\.]+\/[\w\-\.]+)$/, limit, downloadPackage);
-  app.get('/:name/-/:filename', limit, downloadPackage);
+  app.get(/^\/(@[\w\-\.]+\/[\w\-\.]+)\/download\/(@[\w\-\.]+\/[\w\-\.]+)$/, login4Get, limit, downloadPackage);
+  app.get('/:name/download/:filename', login4Get, limit, downloadPackage);
+  app.get(/^\/(@[\w\-\.]+\/[\w\-\.]+)\/\-\/(@[\w\-\.]+\/[\w\-\.]+)$/, login4Get, limit, downloadPackage);
+  app.get('/:name/-/:filename', login4Get, limit, downloadPackage);
 
   // delete tarball and remove one version
   app.delete(/^\/(@[\w\-\.]+\/[\w\-\.]+)\/download\/(@[\w\-\.]+\/[\w\-\.]+)\/\-rev\/([\w\-\.]+)$/,
