@@ -47,6 +47,7 @@ exports.sync = function* () {
   var options = {
     publish: publish,
     noDep: noDep,
+    syncUpstreamFirst: config.sourceNpmRegistryIsCNpm,
   };
 
   var logId = yield* SyncModuleWorker.sync(name, username, options);

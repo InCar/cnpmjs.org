@@ -55,6 +55,7 @@ function SyncModuleWorker(options) {
   this.username = options.username;
   this.concurrency = options.concurrency || 1;
   this._publish = options.publish === true; // _publish_on_cnpm
+  this.syncUpstreamFirst = options.syncUpstreamFirst;
 
   this.syncingNames = {};
   this.nameMap = {};
@@ -128,8 +129,12 @@ SyncModuleWorker.prototype.start = function () {
   var that = this;
   co(function *() {
     // sync upstream
-    if (config.sourceNpmRegistryIsCNpm) {
-      yield* that.syncUpstream(that.startName);
+    if (that.syncUpstreamFirst) {
+      try {
+        yield* that.syncUpstream(that.startName);
+      } catch (err) {
+        logger.error(err);
+      }
     }
 
     var arr = [];
@@ -243,7 +248,7 @@ SyncModuleWorker.prototype.syncUpstream = function* (name) {
   this.log('----------------- Synced upstream %s -------------------', logURL);
 };
 
-SyncModuleWorker.prototype.next = function *(concurrencyId) {
+SyncModuleWorker.prototype.next = function* (concurrencyId) {
   var name = this.names.shift();
   if (!name) {
     return setImmediate(this.finish.bind(this));
