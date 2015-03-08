@@ -3,7 +3,7 @@ This project forked from <https://github.com/cnpm/cnpmjs.org>, please forward to
 The only difference is supporting an **anonymous disabled** mode. This mode disable the anonymous user to use "npm info", "npm install".
 
 To enable **anonymous disabled** mode, simply add a configuration *anonymousVisit* to your /config/config.js
-```
+```javascript
 module.exports = {
     anonymousVisit: false // default is true, allow anonymouse install packages
     debug:false,

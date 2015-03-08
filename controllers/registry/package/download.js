@@ -24,6 +24,7 @@ var common = require('../../../lib/common');
 var downloadAsReadStream = require('../../utils').downloadAsReadStream;
 var packageService = require('../../../services/package');
 var downloadTotalService = require('../../../services/download_total');
+var config = require('../../../config');
 
 var _downloads = {};
 
@@ -51,11 +52,20 @@ module.exports = function* download(next) {
     return;
   }
 
+  if (config.downloadRedirectToNFS && url) {
+    this.status = 302;
+    this.set('Location', url);
+    _downloads[name] = (_downloads[name] || 0) + 1;
+    return;
+  }
+
   var dist = row.package.dist;
   if (!dist.key) {
-    debug('get tarball by 302, url: %s', dist.tarball || url);
+    // try to use nsf.url() first
+    url = url || dist.tarball;
+    debug('get tarball by 302, url: %s', url);
     this.status = 302;
-    this.set('Location', dist.tarball || url);
+    this.set('Location', url);
     _downloads[name] = (_downloads[name] || 0) + 1;
     return;
   }

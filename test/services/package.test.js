@@ -17,6 +17,7 @@
 var should = require('should');
 var sleep = require('co-sleep');
 var Package = require('../../services/package');
+var utils = require('../utils');
 
 describe('services/package.test.js', function () {
   function* createModule(name, version, user, tag) {
@@ -85,6 +86,23 @@ describe('services/package.test.js', function () {
     });
   });
 
+  describe('listMaintainers()', function () {
+    before(function (done) {
+      utils.sync('enable', done);
+    });
+
+    it('should show public package maintainers', function* () {
+      var users = yield* Package.listMaintainers('enable');
+      users.length.should.above(0);
+      users[0].should.have.keys('name', 'email');
+    });
+
+    it('should show private package maintainers', function* () {
+      var users = yield* Package.listMaintainers('@cnpmtest/enable');
+      users.should.be.an.Array;
+    });
+  });
+
   describe('listPublicModuleNamesByUser(), listPublicModulesByUser()', function () {
     before(function* () {
       yield* createModule('listPublicModuleNamesByUser-module0', '1.0.0', 'listPublicModuleNamesByUser-user');
@@ -95,7 +113,7 @@ describe('services/package.test.js', function () {
     it('should got all public module names', function* () {
       var names = yield* Package.listPublicModuleNamesByUser('listPublicModuleNamesByUser-user');
       names.should.length(3);
-      names.should.eql([
+      names.sort().should.eql([
         'listPublicModuleNamesByUser-module0',
         'listPublicModuleNamesByUser-module1',
         'listPublicModuleNamesByUser-module2'
@@ -412,6 +430,33 @@ describe('services/package.test.js', function () {
       yield* Package.updateModuleLastModified(r1.name);
       var r2 = yield* Package.getModule(r1.name, r1.version);
       r2.gmt_modified.getTime().should.above(r1.gmt_modified.getTime());
+    });
+  });
+
+  describe('addKeyword()', function () {
+    it('should add duplicat keywords', function* () {
+      var r = yield* Package.addKeyword({
+        name: 'addKeyword-test-name',
+        keyword: 'addKeyword-test-keyword',
+        description: 'addKeyword-test-description',
+      });
+      should.exist(r);
+
+      var r2 = yield* Package.addKeyword({
+        name: 'addKeyword-test-name',
+        keyword: 'addKeyword-test-keyword',
+        description: 'addKeyword-test-description',
+      });
+      should.exist(r2);
+      r2.id.should.equal(r.id);
+
+      var r3 = yield* Package.addKeyword({
+        name: 'addKeyword-test-name',
+        keyword: 'addKeyword-test-keyword',
+        description: 'addKeyword-test-description2',
+      });
+      should.exist(r3);
+      r3.id.should.equal(r.id);
     });
   });
 

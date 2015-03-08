@@ -15,12 +15,13 @@
  */
 
 var models = require('../models');
+var common = require('./common');
 var Tag = models.Tag;
 var User = models.User;
 var Module = models.Module;
 var ModuleStar = models.ModuleStar;
 var ModuleKeyword = models.ModuleKeyword;
-var ModuleMaintainer = models.ModuleMaintainer;
+var PrivateModuleMaintainer = models.ModuleMaintainer;
 var ModuleDependency = models.ModuleDependency;
 var ModuleUnpublished = models.ModuleUnpublished;
 var NpmModuleMaintainer = models.NpmModuleMaintainer;
@@ -36,6 +37,10 @@ function parseRow(row) {
         row.package = decodeURIComponent(row.package);
       }
       row.package = JSON.parse(row.package);
+      if (typeof row.publish_time === 'string') {
+        // pg bigint is string
+        row.publish_time = Number(row.publish_time);
+      }
     } catch (e) {
       console.warn('parse package error: %s, id: %s version: %s, error: %s', row.name, row.id, row.version, e);
     }
@@ -151,7 +156,7 @@ exports.listModuleNamesByUser = function* (username) {
   });
 
   // find from private module maintainer table
-  moduleNames = yield* ModuleMaintainer.listModuleNamesByUser(username);
+  moduleNames = yield* PrivateModuleMaintainer.listModuleNamesByUser(username);
   moduleNames.forEach(function (name) {
     if (!map[name]) {
       names.push(name);
@@ -275,10 +280,12 @@ exports.saveModule = function* (mod) {
   item.dist_size = dist.size;
   item.description = description;
 
-  var newItem = yield item.save();
+  if (item.isDirty) {
+    item = yield item.save();
+  }
   var result = {
-    id: newItem.id,
-    gmt_modified: newItem.gmt_modified
+    id: item.id,
+    gmt_modified: item.gmt_modified
   };
 
   if (!Array.isArray(keywords)) {
@@ -396,7 +403,10 @@ exports.addModuleTag = function* (name, tag, version) {
   }
   row.module_id = mod.id;
   row.version = version;
-  return yield row.save();
+  if (row.isDirty) {
+    return yield row.save();
+  }
+  return row;
 };
 
 exports.getModuleTag = function* (name, tag) {
@@ -476,8 +486,27 @@ exports.removePublicModuleMaintainer = function* (name, user) {
   return yield* NpmModuleMaintainer.removeMaintainers(name, user);
 };
 
+// only can add to cnpm maintainer table
+exports.addPrivateModuleMaintainers = function* (name, usernames) {
+  return yield* PrivateModuleMaintainer.addMaintainers(name, usernames);
+};
+
+exports.updatePrivateModuleMaintainers = function* (name, usernames) {
+  var result = yield* PrivateModuleMaintainer.updateMaintainers(name, usernames);
+  if (result.add.length > 0 || result.remove.length > 0) {
+    yield* exports.updateModuleLastModified(name);
+  }
+  return result;
+};
+
+function* getMaintainerModel(name) {
+  var isPrivatePackage = yield* common.isPrivatePackage(name);
+  return isPrivatePackage ? PrivateModuleMaintainer : NpmModuleMaintainer;
+}
+
 exports.listMaintainers = function* (name) {
-  var usernames = yield* ModuleMaintainer.listMaintainers(name);
+  var mod = yield* getMaintainerModel(name);
+  var usernames = yield* mod.listMaintainers(name);
   if (usernames.length === 0) {
     return usernames;
   }
@@ -491,31 +520,21 @@ exports.listMaintainers = function* (name) {
 };
 
 exports.listMaintainerNamesOnly = function* (name) {
-  return yield* ModuleMaintainer.listMaintainers(name);
-};
-
-exports.addMaintainers = function* (name, usernames) {
-  return yield* ModuleMaintainer.addMaintainers(name, usernames);
-};
-
-exports.updateMaintainers = function* (name, usernames) {
-  var result = yield* ModuleMaintainer.updateMaintainers(name, usernames);
-  if (result.add.length > 0 || result.remove.length > 0) {
-    yield* exports.updateModuleLastModified(name);
-  }
-  return result;
+  var mod = yield* getMaintainerModel(name);
+  return yield* mod.listMaintainers(name);
 };
 
 exports.removeAllMaintainers = function* (name) {
   return yield [
-    ModuleMaintainer.removeAllMaintainers(name),
+    PrivateModuleMaintainer.removeAllMaintainers(name),
     NpmModuleMaintainer.removeAllMaintainers(name),
   ];
 };
 
 exports.authMaintainer = function* (packageName, username) {
+  var mod = yield* getMaintainerModel(packageName);
   var rs = yield [
-    ModuleMaintainer.listMaintainers(packageName),
+    mod.listMaintainers(packageName),
     exports.getLatestModule(packageName)
   ];
   var maintainers = rs[0];
@@ -561,7 +580,12 @@ exports.addKeyword = function* (data) {
     item = ModuleKeyword.build(data);
   }
   item.description = data.description;
-  return yield item.save();
+  if (item.isDirty) {
+    // make sure object will change, otherwise will cause empty sql error
+    // @see https://github.com/cnpm/cnpmjs.org/issues/533
+    return yield item.save();
+  }
+  return item;
 };
 
 exports.addKeywords = function* (name, description, keywords) {
@@ -589,7 +613,7 @@ exports.search = function* (word, options) {
   // 3. keyword equal search
   var ids = {};
 
-  var sql = 'SELECT module_id FROM tag WHERE LOWER(name) LIKE LOWER(?) AND tag="latest" \
+  var sql = 'SELECT module_id FROM tag WHERE LOWER(name) LIKE LOWER(?) AND tag=\'latest\' \
     ORDER BY name LIMIT ?;';
   var rows = yield* models.query(sql, [word + '%', limit ]);
   for (var i = 0; i < rows.length; i++) {

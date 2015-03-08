@@ -21,3 +21,5 @@ config/web_readme.md
 .dist/
 config/config.js
 *.sqlite
+.node-dev.json
+nohup.out

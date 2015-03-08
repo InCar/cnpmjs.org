@@ -117,6 +117,9 @@ module.exports = function (sequelize, DataTypes) {
         return yield this.find({ where: { name: name } });
       },
       listByNames: function* (names) {
+        if (!names || names.length === 0) {
+          return [];
+        }
         return yield this.findAll({
           where: {
             name: {
@@ -152,7 +155,10 @@ module.exports = function (sequelize, DataTypes) {
         user.json = data;
         user.email = data.email || '';
         user.rev = data._rev || '';
-        return yield user.save();
+        if (user.isDirty) {
+          user = yield user.save();
+        }
+        return user;
       },
       saveCustomUser: function* (data) {
         var name = data.user.login;
@@ -176,7 +182,10 @@ module.exports = function (sequelize, DataTypes) {
         user.rev = rev;
         user.salt = salt;
         user.password_sha = passwordSha;
-        return yield user.save();
+        if (user.isDirty) {
+          user = yield user.save();
+        }
+        return user;
       },
 
       // add cnpm user

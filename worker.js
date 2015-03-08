@@ -6,7 +6,7 @@
  *
  * Authors:
  *  dead_horse <dead_horse@qq.com>
- *  fengmk2 <fengmk2@gmail.com> (http://fengmk2.github.com)
+ *  fengmk2 <fengmk2@gmail.com> (http://fengmk2.com)
  */
 
 'use strict';
@@ -16,10 +16,10 @@
  */
 
 var graceful = require('graceful');
-var logger = require('./common/logger');
-var config = require('./config');
 var registry = require('./servers/registry');
 var web = require('./servers/web');
+var logger = require('./common/logger');
+var config = require('./config');
 
 registry.listen(config.registryPort, config.bindingHost);
 web.listen(config.webPort, config.bindingHost);
@@ -36,6 +36,7 @@ graceful({
     if (err.message) {
       err.message += ' (uncaughtException throw ' + throwErrorCount + ' times on pid:' + process.pid + ')';
     }
+    console.error(err);
     console.error(err.stack);
     logger.error(err);
   }

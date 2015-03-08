@@ -15,31 +15,45 @@
  * Module dependencies.
  */
 
-var path = require('path');
-var http = require('http');
-var fs = require('fs');
-var koa = require('koa');
-var middlewares = require('koa-middlewares');
-var markdown = require('koa-markdown');
+global.Promise = require('bluebird');
 var opensearch = require('../middleware/opensearch');
 var notFound = require('../middleware/web_not_found');
 var staticCache = require('../middleware/static');
-var auth = require('../middleware/auth');
-var routes = require('../routes/web');
+var middlewares = require('koa-middlewares');
+var markdownMiddleware = require('koa-markdown');
+var block = require('../middleware/block');
 var logger = require('../common/logger');
+var renderMarkdown = require('../common/markdown').render;
+var auth = require('../middleware/auth');
+var proxyToNpm = require('../middleware/proxy_to_npm');
+var routes = require('../routes/web');
 var config = require('../config');
+var path = require('path');
+var http = require('http');
+var koa = require('koa');
+var fs = require('fs');
 
 var app = koa();
 
 var rootdir = path.dirname(__dirname);
 
+app.use(block());
 app.use(middlewares.rt({headerName: 'X-ReadTime'}));
 app.use(middlewares.rewrite('/favicon.ico', '/favicon.png'));
 app.use(staticCache);
 
+if (config.pagemock) {
+  app.use(require('koa-mock')({
+    datadir: path.join(rootdir, 'test', 'mocks')
+  }));
+}
+
 app.use(opensearch);
 app.keys = ['todokey', config.sessionSecret];
 app.proxy = true;
+app.use(proxyToNpm({
+  isWeb: true
+}));
 app.use(middlewares.bodyParser());
 app.use(auth());
 app.use(notFound);
@@ -71,16 +85,17 @@ if (config.customReadmeFile) {
 }
 fs.writeFileSync(readmeFile, readmeContent);
 
-app.use(markdown({
+app.use(markdownMiddleware({
   baseUrl: '/',
   root: docDir,
   layout: layoutFile,
-  titleHolder: '<%- locals.title %>',
+  titleHolder: '<%= locals.title %>',
   bodyHolder: '<%- locals.body %>',
   indexName: '_readme',
-  remarkableOptions: {
-    html: true
-  }
+  cache: true,
+  render: function (content) {
+    return renderMarkdown(content, false);
+  },
 }));
 
 var locals = {
@@ -108,6 +123,7 @@ routes(app);
 
 app.on('error', function (err, ctx) {
   err.url = err.url || ctx.request.url;
+  console.log(err);
   console.log(err.stack);
   logger.error(err);
 });

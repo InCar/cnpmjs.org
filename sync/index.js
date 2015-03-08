@@ -14,6 +14,7 @@
  * Module dependencies.
  */
 
+global.Promise = require('bluebird');
 var debug = require('debug')('cnpmjs.org:sync:index');
 var co = require('co');
 var ms = require('humanize-ms');
@@ -22,7 +23,6 @@ var config = require('../config');
 var mail = require('../common/mail');
 var logger = require('../common/logger');
 var totalService = require('../services/total');
-var DistSyncer = require('./sync_dist');
 
 var sync = null;
 
@@ -43,14 +43,14 @@ if (!sync && config.enableCluster) {
 console.log('[%s] [sync_worker:%s] syncing with %s mode',
   Date(), process.pid, config.syncModel);
 
+function onerror(err) {
+  logger.error(err);
+}
+
 //set sync_status = 0 at first
 co(function* () {
   yield* totalService.updateSyncStatus(0);
-})(function (err) {
-  if (err) {
-    logger.error(err);
-  }
-});
+}).catch(onerror);
 
 var syncInterval = ms(config.syncInterval);
 var minSyncInterval = ms('5m');
@@ -60,7 +60,7 @@ if (!syncInterval || syncInterval < minSyncInterval) {
 
 // the same time only sync once
 var syncing = false;
-var handleSync = co(function* () {
+var syncFn = co.wrap(function* () {
   debug('mode: %s, syncing: %s', config.syncModel, syncing);
   if (!syncing) {
     syncing = true;
@@ -83,83 +83,19 @@ var handleSync = co(function* () {
 });
 
 if (sync) {
-  handleSync();
-  setInterval(handleSync, syncInterval);
-}
-
-/**
- * sync dist(node.js and phantomjs)
- */
-
-var syncingDist = false;
-var syncDist = co(function* () {
-  if (syncingDist) {
-    return;
-  }
-  syncingDist = true;
-  logger.syncInfo('Start syncing dist...');
-  var distSyncer = new DistSyncer({
-    disturl: config.disturl
-  });
-  try {
-    yield* distSyncer.start();
-    yield* distSyncer.syncPhantomjsDir();
-  } catch (err) {
-    err.message += ' (sync dist error)';
-    logger.syncError(err);
-    if (config.noticeSyncDistError) {
-      sendMailToAdmin(err, null, new Date());
-    }
-  }
-  syncingDist = false;
-});
-
-if (config.syncDist) {
-  syncDist();
-  setInterval(syncDist, syncInterval);
-} else {
-  logger.syncInfo('sync dist disable');
-}
-
-/**
- * sync python dist
- */
-
-var syncingPythonDist = false;
-var syncPythonDist = co(function* () {
-  if (syncingPythonDist) {
-    return;
-  }
-  syncingPythonDist = true;
-  logger.syncInfo('Start syncing python dist...');
-  var distSyncer = new DistSyncer({
-    disturl: config.pythonDisturl
-  });
-  try {
-    yield* distSyncer.start();
-  } catch (err) {
-    err.message += ' (sync python dist error)';
-    logger.syncError(err);
-    if (config.noticeSyncDistError) {
-      sendMailToAdmin(err, null, new Date());
-    }
-  }
-  syncingPythonDist = false;
-});
-
-if (config.syncPythonDist) {
-  syncPythonDist();
-  setInterval(syncPythonDist, syncInterval);
-} else {
-  logger.syncInfo('sync python dist disable');
+  syncFn().catch(onerror);
+  setInterval(function () {
+    syncFn().catch(onerror);
+  }, syncInterval);
 }
 
 /**
  * sync popular modules
  */
 
+var startSyncPopular = require('./sync_popular');
 var syncingPopular = false;
-var syncPopular = co(function* syncPopular() {
+var syncPopularFn = co.wrap(function* syncPopular() {
   if (syncingPopular) {
     return;
   }
@@ -168,7 +104,7 @@ var syncPopular = co(function* syncPopular() {
   var data;
   var error;
   try {
-    data = yield* require('./sync_popular');
+    data = yield* startSyncPopular();
   } catch (err) {
     error = err;
     error.message += ' (sync package error)';
@@ -186,8 +122,10 @@ var syncPopular = co(function* syncPopular() {
 });
 
 if (config.syncPopular) {
-  syncPopular();
-  setInterval(syncPopular, ms(config.syncPopularInterval));
+  syncPopularFn().catch(onerror);
+  setInterval(function () {
+    syncPopularFn().catch(onerror);
+  }, ms(config.syncPopularInterval));
 } else {
   logger.syncInfo('sync popular module disable');
 }

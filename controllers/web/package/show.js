@@ -20,12 +20,12 @@ var bytes = require('bytes');
 var giturl = require('giturl');
 var moment = require('moment');
 var semver = require('semver');
-var marked = require('marked');
 var gravatar = require('gravatar');
 var humanize = require('humanize-number');
 var config = require('../../../config');
 var utils = require('../../utils');
 var setDownloadURL = require('../../../lib/common').setDownloadURL;
+var renderMarkdown = require('../../../common/markdown').render;
 var packageService = require('../../../services/package');
 
 module.exports = function* show(next) {
@@ -90,7 +90,12 @@ module.exports = function* show(next) {
   pkg.package.fromNow = moment(pkg.publish_time).fromNow();
   pkg = pkg.package;
   pkg.users = users;
-  pkg.readme = marked(pkg.readme || '');
+  if (pkg.readme && typeof pkg.readme !== 'string') {
+    pkg.readme = 'readme is not string: ' + JSON.stringify(pkg.readme);
+  } else {
+    pkg.readme = renderMarkdown(pkg.readme || '');
+  }
+
   if (!pkg.readme) {
     pkg.readme = pkg.description || '';
   }
@@ -108,24 +113,21 @@ module.exports = function* show(next) {
     }
   }
 
-  if (pkg.contributors) {
-    // registry.cnpmjs.org/compressible
-    if (!Array.isArray(pkg.contributors)) {
-      pkg.contributors = [pkg.contributors];
-    }
-    for (var i = 0; i < pkg.contributors.length; i++) {
-      var contributor = pkg.contributors[i];
-      if (contributor.email) {
-        contributor.gravatar = gravatar.url(contributor.email, {s: '50', d: 'retro'}, true);
-      }
-      if (config.packagePageContributorSearch || !contributor.url) {
-        contributor.url = '/~' + encodeURIComponent(contributor.name);
-      }
+  if (pkg._npmUser) {
+    pkg.lastPublishedUser = pkg._npmUser;
+    if (pkg.lastPublishedUser.email) {
+      pkg.lastPublishedUser.gravatar = gravatar.url(pkg.lastPublishedUser.email, {s: '50', d: 'retro'}, true);
     }
   }
 
+  if (pkg.repository === 'undefined') {
+    pkg.repository = null;
+  }
   if (pkg.repository && pkg.repository.url) {
     pkg.repository.weburl = giturl.parse(pkg.repository.url) || pkg.repository.url;
+  }
+  if (!pkg.bugs) {
+    pkg.bugs = {};
   }
 
   utils.setLicense(pkg);
@@ -144,6 +146,8 @@ module.exports = function* show(next) {
   if (pkg.name !== orginalName) {
     pkg.name = orginalName;
   }
+
+  pkg.registryUrl = '//' + config.registryHost + '/' + pkg.name;
 
   // pkg.engines = {
   //   "python": ">= 0.11.9",

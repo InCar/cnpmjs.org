@@ -19,12 +19,10 @@ var showPackage = require('../controllers/web/package/show');
 var searchPackage = require('../controllers/web/package/search');
 var searchRange = require('../controllers/web/package/search_range');
 var listPrivates = require('../controllers/web/package/list_privates');
-var showSync = require('../controllers/web/package/show_sync');
+var showSync = require('../controllers/web/show_sync');
 var showUser = require('../controllers/web/user/show');
-
 var sync = require('../controllers/sync');
 var showTotal = require('../controllers/total');
-var dist = require('../controllers/web/dist');
 var badge = require('../controllers/web/badge');
 
 function routes(app) {
@@ -51,8 +49,6 @@ function routes(app) {
   app.get('/sync/:name/log/:id', sync.getSyncLog);
 
   app.get('/_list/search/search', searchRange);
-
-  app.get(/^\/dist(\/.*)?/, dist.list);
 
   app.get(/^\/badge\/v\/([@\w\-\.\/]+)\.svg$/, badge.version);
 }

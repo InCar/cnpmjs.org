@@ -6,7 +6,7 @@
  *
  * Authors:
  *  dead_horse <dead_horse@qq.com>
- *  fengmk2 <fengmk2@gmail.com> (http://fengmk2.github.com)
+ *  fengmk2 <m@fengmk2.com> (http://fengmk2.com)
  */
 
 'use strict';
@@ -15,16 +15,16 @@
  * Module dependencies.
  */
 
+var mkdirp = require('mkdirp');
+var copy = require('copy-to');
 var path = require('path');
 var fs = require('fs');
 var os = require('os');
-var mkdirp = require('mkdirp');
-var copy = require('copy-to');
 
-fs.existsSync = fs.existsSync || path.existsSync;
 var version = require('../package.json').version;
 
 var root = path.dirname(__dirname);
+var dataDir = path.join(process.env.HOME || root, '.cnpmjs.org');
 
 var config = {
   version: version,
@@ -38,6 +38,7 @@ var config = {
   /*
    * server configure
    */
+
   registryPort: 7001,
   webPort: 7002,
   bindingHost: '127.0.0.1', // only binding on 127.0.0.1 for local access
@@ -45,15 +46,17 @@ var config = {
   // debug mode
   // if in debug mode, some middleware like limit wont load
   // logger module will print to stdout
-  debug: true,
+  debug: process.env.NODE_ENV === 'development',
+  // page mode, enable on development env
+  pagemock: process.env.NODE_ENV === 'development',
   // session secret
   sessionSecret: 'cnpmjs.org test session secret',
   // max request json body size
   jsonLimit: '10mb',
   // log dir name
-  logdir: path.join(root, '.tmp', 'logs'),
+  logdir: path.join(dataDir, 'logs'),
   // update file template dir
-  uploadDir: path.join(root, '.dist'),
+  uploadDir: path.join(dataDir, 'downloads'),
   // web page viewCache
   viewCache: false,
 
@@ -82,6 +85,7 @@ var config = {
   // email notification for errors
   // check https://github.com/andris9/Nodemailer for more informations
   mail: {
+    enable: false,
     appname: 'cnpmjs.org',
     from: 'cnpmjs.org mail sender <adderss@gmail.com>',
     service: 'gmail',
@@ -90,18 +94,6 @@ var config = {
       pass: 'your password'
     }
   },
-  // forward Compat with old style
-  // mail: {
-  //   appname: 'cnpmjs.org',
-  //   sender: 'cnpmjs.org mail sender <adderss@gmail.com>',
-  //   host: 'smtp.gmail.com',
-  //   port: 465,
-  //   user: 'address@gmail.com',
-  //   pass: 'your password',
-  //   ssl: true,
-  //   debug: false
-  // },
-
 
   logoURL: '//ww4.sinaimg.cn/large/69c1d4acgw1ebfly5kjlij208202oglr.jpg', // cnpm logo image url
   customReadmeFile: '', // you can use your custom readme file instead the cnpm one
@@ -142,20 +134,18 @@ var config = {
     },
 
     // the storage engine for 'sqlite'
-    // default store into ~/cnpmjs.org.sqlite
-    storage: path.join(process.env.HOME || root, 'cnpmjs.org.sqlite'),
+    // default store into ~/.cnpmjs.org/data.sqlite
+    storage: path.join(dataDir, 'data.sqlite'),
 
     logging: !!process.env.SQL_DEBUG,
   },
 
-  // redis config
-  // use for koa-limit module as storage
-  redis: null,
-
   // package tarball store in local filesystem by default
   nfs: require('fs-cnpm')({
-    dir: path.join(root, '.tmp', 'dist')
+    dir: path.join(dataDir, 'nfs')
   }),
+  // if set true, will 302 redirect to `nfs.url(dist.key)`
+  downloadRedirectToNFS: false,
 
   // registry url name
   registryHost: 'r.cnpmjs.org',
@@ -164,18 +154,13 @@ var config = {
    * registry mode config
    */
 
-  // enable private mode, only admin can publish, other use just can sync package from source npm
-  enablePrivate: true,
+  // enable private mode or not
+  // private mode: only admins can publish, other users just can sync package from source npm
+  // public mode: all users can publish
+  enablePrivate: false,
 
   // registry scopes, if don't set, means do not support scopes
-  scopes: [
-    '@cnpm',
-    '@cnpmtest'
-  ],
-
-  // force user publish with scope
-  // but admins still can publish without scope
-  forcePublishWithScope: true,
+  scopes: [ '@cnpm', '@cnpmtest' ],
 
   // some registry already have some private packages in global scope
   // but we want to treat them as scoped private packages,
@@ -185,15 +170,6 @@ var config = {
   /**
    * sync configs
    */
-
-  // sync dist config
-  // sync node.js dist from nodejs.org
-  noticeSyncDistError: true,
-  disturl: 'http://nodejs.org/dist',
-  syncDist: false,
-
-  pythonDisturl: 'https://www.python.org/ftp',
-  syncPythonDist: false,
 
   // the official npm registry
   // cnpm wont directly sync from this one
@@ -214,7 +190,7 @@ var config = {
   syncByInstall: true,
 
   // sync mode select
-  // none: do not sync any module
+  // none: do not sync any module, proxy all public modules from sourceNpmRegistry
   // exist: only sync exist modules
   // all: sync all modules
   syncModel: 'none', // 'none', 'all', 'exist'
@@ -241,12 +217,31 @@ var config = {
   // then even get method will need authorization.
   //This will strict only login users can list or install packages.
   anonymousVisit: true
+
+  // custom user service, @see https://github.com/cnpm/cnpmjs.org/wiki/Use-Your-Own-User-Authorization
+  userService: null,
+
+  // always-auth https://docs.npmjs.com/misc/config#always-auth
+  // Force npm to always require authentication when accessing the registry, even for GET requests.
+  alwaysAuth: false,
+
 };
 
-// load config/config.js, everything in config.js will cover the same key in index.js
-var customConfig = path.join(root, 'config/config.js');
-if (fs.existsSync(customConfig)) {
-  copy(require(customConfig)).override(config);
+if (process.env.NODE_ENV !== 'test') {
+  var customConfig;
+  if (process.env.NODE_ENV === 'development') {
+    customConfig = path.join(root, 'config', 'config.js');
+  } else {
+    // 1. try to load `$dataDir/config.json` first, not exists then goto 2.
+    // 2. load config/config.js, everything in config.js will cover the same key in index.js
+    customConfig = path.join(dataDir, 'config.json');
+    if (!fs.existsSync(customConfig)) {
+      customConfig = path.join(root, 'config', 'config.js');
+    }
+  }
+  if (fs.existsSync(customConfig)) {
+    copy(require(customConfig)).override(config);
+  }
 }
 
 mkdirp.sync(config.logdir);

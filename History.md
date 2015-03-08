@@ -1,4 +1,151 @@
 
+2.0.0-rc.15 / 2015-02-15
+==================
+
+ * fix(markdown): filter xss after markdown render
+ * feat(database): support PostgreSQL
+
+2.0.0-rc.14 / 2015-02-14
+==================
+
+ * feat: support always-auth
+ * fix mysql select args = [] bug
+ * fix #597 sequelize raw query.
+ * fix(markdown): hotfix markdown-it cpu problem
+ * feat: upgrade to co4
+ * use kcors fixes #594
+
+2.0.0-rc.13 / 2015-02-04
+==================
+
+ * docs: Deploy a private npm registry in 5 minutes
+ * refactor(config): move application data to ~/.cnpmjs.org/
+ * fix(sync): make get popular pakcage faster
+ * feat(sync): web page also redirect to npm www
+ * refactor(config): make syncModel to none by default
+ * test: fix admin can not publish non-scoped package test cases
+ * docs: add chinese mirror link
+ * fix: admin can not publish non scoped package on "none" sync model
+ * feat(sync): enable none syncModel proxy all public packages
+ * fix: ignore username start with " or '
+ * fix(bin): fix stop not work on iojs
+
+2.0.0-rc.12 / 2015-02-01
+==================
+
+ * feat(syncer): add hostname ua
+ * fix(web): remove pkg.contributors logic
+
+2.0.0-rc.11 / 2015-02-01
+==================
+
+ * fix xss tests
+ * fix(markdown): revert marky-markdown
+
+2.0.0-rc.10 / 2015-01-31
+==================
+
+ * feat(middleware): CORS headers for GET and HEAD requests
+ * fix(readme): fix index page markdown
+ * feat(markdown): use npm same markdown parser
+ * feat(download): support download redirect to nfs
+ * feat(syncer): request npm registry with gzip
+ * change(sync): remove dist syncer
+ * feat(registry): add dist tag api
+ * refactor(common): remove redis store
+
+2.0.0-rc.9 / 2015-01-22 
+==================
+
+  * hotfix reame render error, pin xss
+  * fix registry user auth api
+
+2.0.0-rc.8 / 2015-01-10
+==================
+
+ * fix(markdown): readme.md allow scripts
+ * fix(style) flexbox compatibility for both chrome and firefox (@afc163)
+ * feat(sync): default sync exist packages
+
+2.0.0-rc.7 / 2015-01-07
+==================
+
+ * install sync dont check `enablePrivate`
+ * fix(markdown): filter xss readme before markdown render
+
+2.0.0-rc.6 / 2015-01-05
+==================
+
+ * fix(markdown): use markdown-it
+ * add userService options on config
+ * add upload to nfs sync info log
+
+2.0.0-rc.5 / 2015-01-03
+==================
+
+ * fix(markdown): use marked instead of remarkable
+ * fix(package): pkg.readme is not a string, dont remarkable it
+ * feat(sync): sync user profile
+
+2.0.0-rc.4 / 2014-12-25
+==================
+
+ * refactor(download): try to use nsf.url() first
+ * use __all__ for full downloads
+ * refactor(download_total): optimize download total
+ * fix sqlite raw sql return datetime is string format
+ * fix(download_total): change column date to DateTime
+ * fix(services/download_total): fix download_total slow sql on `date >= $start and date <= $end`
+ * fix(markdown): replace marked use remarkable
+
+2.0.0-rc.3 / 2014-12-14
+==================
+
+ * fix(services): need to detect instance isDirty or not before save()
+
+2.0.0-rc.2 / 2014-12-11
+==================
+
+ * add download API, closes [#529](https://github.com/cnpm/cnpmjs.org/issues/529)
+ * fix missing home page title (@rockdai)
+ * Fix typo in view/web/package.html (@LoicMahieu)
+
+2.0.0-rc.1 / 2014-12-09
+==================
+
+ * fix xss on title
+ * feat(badge): support badge image url with tag
+
+2.0.0-beta5 / 2014-12-05
+==================
+
+ * hotfix package.html typo. Closes [#521](https://github.com/cnpm/cnpmjs.org/issues/521)
+ * Add editorconfig
+ * fix(web/package): package name to long cause style problem fix
+ * fix(css): use github-markdown-css for markdown body
+ * feat(mock): use koa-mock for front end dev
+
+2.0.0-beta4 / 2014-11-21
+==================
+
+ * fix(registry): add missing /-/short api
+ * zoom sync link
+ * new design for package page
+ * image max width, fixed [#505](https://github.com/cnpm/cnpmjs.org/issues/505)
+ * feat(middleware): block Ruby user-agent
+
+2.0.0-beta3 / 2014-11-12
+==================
+
+ * fix(sync): should not sync package when maintainers sort change
+ * fix(package): detect package is private or not
+ * fix(maintainer): fix missing maintainers
+
+2.0.0-beta2 / 2014-11-09
+==================
+
+ * fix(sync): add missing syncUpstreamFirst argument
+
 2.0.0-beta1 / 2014-11-07
 ==================
 
@@ -14,7 +161,7 @@
 2.0.0-beta0 / 2014-11-02
 ==================
 
- * ungrade koa-markdown to use remarkable, close #482
+ * ungrade koa-markdown to use remarkable, close [#482](https://github.com/cnpm/cnpmjs.org/issues/482)
  * fix(module_log): limit module sync log size to 1MB
  * refactor(config): remove adaptScope config key
  * chore(Makefile): $ make install-production

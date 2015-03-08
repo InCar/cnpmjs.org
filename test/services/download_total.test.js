@@ -26,10 +26,26 @@ describe('services/download_total.test.js', function () {
       };
       yield* DownloadTotal.plusModuleTotal(data);
 
+      data = {
+        date: '2014-10-22',
+        name: 'plusModuleTotal-module',
+        count: 2
+      };
+      yield* DownloadTotal.plusModuleTotal(data);
+
       var rows = yield* DownloadTotal.getModuleTotal(
         'plusModuleTotal-module', '2014-10-21', '2014-10-21');
       rows.should.length(1);
       rows[0].count.should.equal(1000);
+      rows[0].date.should.equal('2014-10-21');
+
+      rows = yield* DownloadTotal.getModuleTotal(
+        'plusModuleTotal-module', '2014-10-21', '2014-10-22');
+      rows.should.length(2);
+      rows[0].count.should.equal(1000);
+      rows[0].date.should.equal('2014-10-21');
+      rows[1].count.should.equal(2);
+      rows[1].date.should.equal('2014-10-22');
 
       // save again
       data = {
@@ -42,6 +58,35 @@ describe('services/download_total.test.js', function () {
         'plusModuleTotal-module', '2014-10-21', '2014-10-21');
       rows.should.length(1);
       rows[0].count.should.equal(1003);
+      rows[0].date.should.equal('2014-10-21');
+
+      data = {
+        date: '2014-10-22',
+        name: 'plusModuleTotal-module2',
+        count: 3
+      };
+      yield* DownloadTotal.plusModuleTotal(data);
+      data = {
+        date: '2014-12-22',
+        name: 'plusModuleTotal-module2',
+        count: 3
+      };
+      yield* DownloadTotal.plusModuleTotal(data);
+      data = {
+        date: '2014-12-21',
+        name: 'plusModuleTotal-module2',
+        count: 3
+      };
+      yield* DownloadTotal.plusModuleTotal(data);
+
+      rows = yield DownloadTotal.getTotal('2014-10-21', '2014-12-21');
+      rows.should.length(3);
+      rows[0].date.should.equal('2014-10-21');
+      rows[0].count.should.equal(1003);
+      rows[1].date.should.equal('2014-10-22');
+      rows[1].count.should.equal(5);
+      rows[2].date.should.equal('2014-12-21');
+      rows[2].count.should.equal(3);
     });
   });
 });

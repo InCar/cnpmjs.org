@@ -26,6 +26,8 @@
     <% if (user.email) { %>
       <small>(<a href="mailto:<%= user.email %>"><%= user.email %></a>)</small>
     <% } %>
+
+    <small>(<a href="/sync/user:<%= user.name %>" target="_blank">SYNC</a> profile)</small>
   </h1>
   <table class="downloads">
     <tbody>
@@ -40,7 +42,7 @@
         <td>@<%= user.json.fullname || user.name %></td>
         <td>
           <% if (user.json.im) { %>
-            <a href="<%- user.json.im %>" target="_blank"><span class="glyphicon  glyphicon-comment"></span></a>
+            <a href="<%= user.json.im %>" target="_blank"><span class="glyphicon  glyphicon-comment"></span></a>
           <% } %>
         </td>
         <td><%- lastModified %></td>

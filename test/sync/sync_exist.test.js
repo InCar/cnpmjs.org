@@ -15,40 +15,39 @@
  */
 
 var mm = require('mm');
+var config = require('../../config');
 var sync = require('../../sync/sync_exist');
 var npmService = require('../../services/npm');
 var totalService = require('../../services/total');
-var SyncModuleWorker = require('../../controllers/sync_module_worker');
+var utils = require('../utils');
 
 describe('sync/sync_exist.test.js', function () {
-  describe('sync()', function () {
-    afterEach(mm.restore);
+  beforeEach(function () {
+    mm(config, 'syncModel', 'all');
+  });
 
+  afterEach(mm.restore);
+
+  describe('sync()', function () {
     before(function (done) {
-      var worker = new SyncModuleWorker({
-        name: 'pedding',
-        username: 'admin',
-        noDep: true
-      });
-      worker.start();
-      worker.on('end', done);
+      utils.sync('byte', done);
     });
 
     it('should sync first time ok', function *() {
-      mm.data(npmService, 'getShort', ['pedding']);
+      mm.data(npmService, 'getShort', ['byte']);
       mm.data(totalService, 'getTotalInfo', {last_exist_sync_time: 0});
       var data = yield* sync();
-      data.successes.should.eql(['pedding']);
+      data.successes.should.eql(['byte']);
     });
 
     it('should sync common ok', function *() {
       mm.data(npmService, 'getAllSince', {
         _updated: Date.now(),
-        'pedding': {},
+        'byte': {},
       });
       mm.data(totalService, 'getTotalInfo', {last_exist_sync_time: Date.now()});
       var data = yield* sync();
-      data.successes.should.eql(['pedding']);
+      data.successes.should.eql(['byte']);
 
       mm.data(npmService, 'getAllSince', {
         _updated: Date.now(),

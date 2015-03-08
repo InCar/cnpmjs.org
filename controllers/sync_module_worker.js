@@ -37,8 +37,10 @@ var npmSerivce = require('../services/npm');
 var packageService = require('../services/package');
 var logService = require('../services/module_log');
 var User = require('../models').User;
+var os = require('os');
 
-var USER_AGENT = 'sync.cnpmjs.org/' + config.version + ' ' + urllib.USER_AGENT;
+var USER_AGENT = 'sync.cnpmjs.org/' + config.version +
+  ' hostname/' + os.hostname() + ' ' + urllib.USER_AGENT;
 
 function SyncModuleWorker(options) {
   EventEmitter.call(this);
@@ -49,6 +51,7 @@ function SyncModuleWorker(options) {
     options.name = [options.name];
   }
 
+  this.type = options.type || 'package';
   this.names = options.name;
   this.startName = this.names[0];
 
@@ -79,8 +82,9 @@ SyncModuleWorker.prototype.finish = function () {
     return;
   }
   this._finished = true;
-  this.log('[done] Sync %s module finished, %d success, %d fail\nSuccess: [ %s ]\nFail: [ %s ]',
+  this.log('[done] Sync %s %s finished, %d success, %d fail\nSuccess: [ %s ]\nFail: [ %s ]',
     this.startName,
+    this.type,
     this.successes.length, this.fails.length,
     this.successes.join(', '), this.fails.join(', '));
   this.emit('end');
@@ -112,10 +116,13 @@ SyncModuleWorker.prototype._saveLog = function () {
   that._log = '';
   co(function* () {
     yield* logService.append(that._logId, logstr);
-  })(function (err) {
-    if (err) {
-      logger.error(err);
+  }).then(function () {
+    that._loging = false;
+    if (that._log) {
+      that._saveLog();
     }
+  }).catch(function (err) {
+    logger.error(err);
     that._loging = false;
     if (that._log) {
       that._saveLog();
@@ -127,7 +134,7 @@ SyncModuleWorker.prototype.start = function () {
   this.log('user: %s, sync %s worker start, %d concurrency, nodeps: %s, publish: %s',
     this.username, this.names[0], this.concurrency, this.noDep, this._publish);
   var that = this;
-  co(function *() {
+  co(function* () {
     // sync upstream
     if (that.syncUpstreamFirst) {
       try {
@@ -137,12 +144,19 @@ SyncModuleWorker.prototype.start = function () {
       }
     }
 
+    if (that.type === 'user') {
+      yield that.syncUser();
+      return;
+    }
+
     var arr = [];
     for (var i = 0; i < that.concurrency; i++) {
       arr.push(that.next(i));
     }
     yield arr;
-  })();
+  }).catch(function (err) {
+    logger.error(err);
+  });
 };
 
 SyncModuleWorker.prototype.pushSuccess = function (name) {
@@ -182,7 +196,11 @@ SyncModuleWorker.prototype._doneOne = function* (concurrencyId, name, success) {
 };
 
 SyncModuleWorker.prototype.syncUpstream = function* (name) {
-  var url = config.sourceNpmRegistry + '/' + name + '/sync';
+  var syncname = name;
+  if (this.type === 'user') {
+    syncname = this.type + ':' + syncname;
+  }
+  var url = config.sourceNpmRegistry + '/' + syncname + '/sync';
   if (this.noDep) {
     url += '?nodeps=true';
   }
@@ -192,7 +210,8 @@ SyncModuleWorker.prototype.syncUpstream = function* (name) {
     headers: {
       'content-length': 0
     },
-    dataType: 'json'
+    dataType: 'json',
+    gzip: true,
   });
 
   if (r.status !== 201 || !r.data.ok) {
@@ -210,7 +229,8 @@ SyncModuleWorker.prototype.syncUpstream = function* (name) {
     var synclogURL = logURL + '?offset=' + offset;
     var rs = yield urllib.request(synclogURL, {
       timeout: 20000,
-      dataType: 'json'
+      dataType: 'json',
+      gzip: true,
     });
 
     if (rs.status !== 200 || !rs.data.ok) {
@@ -248,7 +268,28 @@ SyncModuleWorker.prototype.syncUpstream = function* (name) {
   this.log('----------------- Synced upstream %s -------------------', logURL);
 };
 
+SyncModuleWorker.prototype.syncUser = function* () {
+  for (var i = 0; i < this.names.length; i++) {
+    var username = this.names[i];
+    try {
+      var user = yield _saveNpmUser(username);
+      this.pushSuccess(username);
+      this.log('[c#%s] [%s] sync success: %j', 0, username, user);
+    } catch (err) {
+      this.pushFail(username);
+      this.log('[c#%s] [error] [%s] sync error: %s', 0, username, err.stack);
+    }
+  }
+  this.finish();
+};
+
 SyncModuleWorker.prototype.next = function* (concurrencyId) {
+  if (config.syncModel === 'none') {
+    this.log('[c#%d] [%s] syncModel is none, ignore',
+      concurrencyId, name);
+    return this.finish();
+  }
+
   var name = this.names.shift();
   if (!name) {
     return setImmediate(this.finish.bind(this));
@@ -330,7 +371,7 @@ SyncModuleWorker.prototype.next = function* (concurrencyId) {
 };
 
 function* _listStarUsers(modName) {
-  var users = yield packageService.listStarUserNames(modName);
+  var users = yield* packageService.listStarUserNames(modName);
   var userMap = {};
   users.forEach(function (user) {
     userMap[user] = true;
@@ -344,6 +385,7 @@ function* _saveNpmUser(username) {
     return;
   }
   yield* User.saveNpmUser(user);
+  return user;
 }
 
 function* _saveMaintainer(modName, username, action) {
@@ -358,7 +400,7 @@ SyncModuleWorker.prototype._unpublished = function* (name, unpublishedInfo) {
   var mods = yield* packageService.listModulesByName(name);
   this.log('  [%s] start unpublished %d versions from local cnpm registry',
     name, mods.length);
-  if (this._isLocalModule(mods)) {
+  if (common.isLocalModule(mods)) {
     // publish on cnpm, dont sync this version package
     this.log('  [%s] publish on local cnpm registry, don\'t sync', name);
     return [];
@@ -396,16 +438,6 @@ SyncModuleWorker.prototype._unpublished = function* (name, unpublishedInfo) {
   this.log('    [%s] delete nfs files: %j success', name, keys);
 };
 
-SyncModuleWorker.prototype._isLocalModule = function (mods) {
-  for (var i = 0; i < mods.length; i++) {
-    var r = mods[i];
-    if (r.package && r.package._publish_on_cnpm) {
-      return true;
-    }
-  }
-  return false;
-};
-
 SyncModuleWorker.prototype._sync = function* (name, pkg) {
   var that = this;
   var hasModules = false;
@@ -420,7 +452,7 @@ SyncModuleWorker.prototype._sync = function* (name, pkg) {
   var existsStarUsers = result[2];
   var existsNpmMaintainers = result[3];
 
-  if (that._isLocalModule(moduleRows)) {
+  if (common.isLocalModule(moduleRows)) {
     // publish on cnpm, dont sync this version package
     that.log('  [%s] publish on local cnpm registry, don\'t sync', name);
     return [];
@@ -474,6 +506,7 @@ SyncModuleWorker.prototype._sync = function* (name, pkg) {
     for (var i = 0; i < pkgMaintainers.length; i++) {
       var item = pkgMaintainers[i];
       originalMap[item.name] = item;
+      npmUsernames[item.name.toLowerCase()] = 1;
     }
 
     // find add users
@@ -543,13 +576,8 @@ SyncModuleWorker.prototype._sync = function* (name, pkg) {
     if (!version.maintainers || !version.maintainers[0]) {
       version.maintainers = pkg.maintainers;
     }
-    var sourceAuthor = version.maintainers && version.maintainers[0] &&
-      version.maintainers[0].name || exists.author;
-
     if (exists.package &&
-        exists.package.dist.shasum === version.dist.shasum &&
-        exists.author === sourceAuthor) {
-      // * author make sure equal
+        exists.package.dist.shasum === version.dist.shasum) {
       // * shasum make sure equal
       if ((version.publish_time === exists.publish_time) ||
           (!version.publish_time && exists.publish_time)) {
@@ -764,7 +792,9 @@ SyncModuleWorker.prototype._sync = function* (name, pkg) {
     names.forEach(function (username) {
       var r = map[username];
       if (!r || !r.json) {
-        missingUsers.push(username);
+        if (username[0] !== '"' && username[0] !== "'") {
+          missingUsers.push(username);
+        }
       }
     });
 
@@ -852,7 +882,8 @@ SyncModuleWorker.prototype._syncOneVersion = function *(versionIndex, sourcePack
     timeout: 600000, // 10 minutes download
     headers: {
       'user-agent': USER_AGENT
-    }
+    },
+    gzip: true,
   };
 
   var dependencies = Object.keys(sourcePackage.dependencies || {});
@@ -943,6 +974,7 @@ SyncModuleWorker.prototype._syncOneVersion = function *(versionIndex, sourcePack
       shasum: shasum
     };
     // upload to NFS
+    logger.syncInfo('[sync_module_worker] uploading %j to nfs', options);
     var result = yield nfs.upload(filepath, options);
     return yield *afterUpload(result);
   } finally {
@@ -1006,10 +1038,12 @@ SyncModuleWorker.sync = function* (name, username, options) {
   var result = yield* logService.create({name: name, username: username});
   var worker = new SyncModuleWorker({
     logId: result.id,
+    type: options.type,
     name: name,
     username: username,
     noDep: options.noDep,
     publish: options.publish,
+    syncUpstreamFirst: options.syncUpstreamFirst,
   });
   worker.start();
   return result.id;

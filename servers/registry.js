@@ -15,6 +15,7 @@
  * Module dependencies.
  */
 
+global.Promise = require('bluebird');
 var koa = require('koa');
 var app = module.exports = koa();
 var http = require('http');
@@ -22,10 +23,14 @@ var middlewares = require('koa-middlewares');
 var routes = require('../routes/registry');
 var logger = require('../common/logger');
 var config = require('../config');
+var block = require('../middleware/block');
 var auth = require('../middleware/auth');
 var staticCache = require('../middleware/static');
 var notFound = require('../middleware/registry_not_found');
+var cors = require('kcors');
+var proxyToNpm = require('../middleware/proxy_to_npm');
 
+app.use(block());
 middlewares.jsonp(app);
 app.use(middlewares.rt({headerName: 'X-ReadTime'}));
 app.use(middlewares.rewrite('/favicon.ico', '/favicon.png'));
@@ -34,7 +39,11 @@ app.use(staticCache);
 app.keys = ['todokey', config.sessionSecret];
 app.proxy = true;
 app.use(middlewares.bodyParser({jsonLimit: config.jsonLimit}));
+app.use(cors({
+  allowMethods: 'GET,HEAD'
+}));
 app.use(auth());
+app.use(proxyToNpm());
 app.use(notFound);
 
 if (config.enableCompress) {
