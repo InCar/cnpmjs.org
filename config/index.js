@@ -209,7 +209,7 @@ var config = {
   // If config.anonymousVisit set to false
   // then even get method will need authorization.
   //This will strict only login users can list or install packages.
-  anonymousVisit: true
+  anonymousVisit: true,
 
   // custom user service, @see https://github.com/cnpm/cnpmjs.org/wiki/Use-Your-Own-User-Authorization
   // when you not intend to ingegrate with your company's user system, then use null, it would
