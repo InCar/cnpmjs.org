@@ -1,9 +1,7 @@
 #!/usr/bin/env node
 
 /**!
- * cnpmjs.org - bin/cli.js
- *
- * Copyright(c) fengmk2 and other contributors.
+ * Copyright(c) cnpm and other contributors.
  * MIT Licensed
  *
  * Authors:
@@ -16,7 +14,6 @@
  * Module dependencies.
  */
 
-require('gnode');
 var debug = require('debug')('cnpmjs.org:cli');
 var program = require('commander');
 var path = require('path');
@@ -86,9 +83,10 @@ function start(options) {
   debug('save config %s to %s', configJSON, configfile);
 
   // if sqlite db file not exists, init first
-  initDatabase();
+  initDatabase(function() {
+    require('../dispatch');
+  });
 
-  require('../dispatch');
   fs.writeFileSync(path.join(dataDir, 'pid'), process.pid + '');
 }
 
@@ -108,7 +106,7 @@ function stop(options) {
   }
 }
 
-function initDatabase() {
+function initDatabase(callback) {
   var models = require('../models');
 
   models.sequelize.sync({ force: false })
@@ -120,6 +118,7 @@ function initDatabase() {
           throw err;
         } else {
           console.log('[models/init_script.js] `sqlite` sequelize sync and init success');
+          callback();
         }
       });
     })

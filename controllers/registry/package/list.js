@@ -1,13 +1,3 @@
-/**!
- * cnpmjs.org - controllers/registry/package/list.js
- *
- * Copyright(c) fengmk2 and other contributors.
- * MIT Licensed
- *
- * Authors:
- *   fengmk2 <fengmk2@gmail.com> (http://fengmk2.github.com)
- */
-
 'use strict';
 
 /**
@@ -44,9 +34,6 @@ module.exports = function* list() {
         modifiedTime = tag.gmt_modified;
       }
     }
-
-    // use modifiedTime as etag
-    this.set('ETag', '"' + modifiedTime.getTime() + '"');
 
     // must set status first
     this.status = 200;
@@ -104,7 +91,7 @@ module.exports = function* list() {
       this.status = 404;
       this.body = {
         error: 'not_found',
-        reason: 'document not found'
+        reason: 'document not found',
       };
       return;
     }
@@ -133,8 +120,14 @@ module.exports = function* list() {
   for (var i = 0; i < rows.length; i++) {
     var row = rows[i];
     var pkg = row.package;
+    // pkg is string ... ignore it
+    if (typeof pkg === 'string') {
+      continue;
+    }
     common.setDownloadURL(pkg, this);
     pkg._cnpm_publish_time = row.publish_time;
+    pkg.publish_time = pkg.publish_time || row.publish_time;
+
     versions[pkg.version] = pkg;
 
     var t = times[pkg.version] = row.publish_time ? new Date(row.publish_time) : row.gmt_modified;
@@ -199,5 +192,5 @@ module.exports = function* list() {
   info.license = pkg.license;
 
   debug('show module %s: %s, latest: %s', orginalName, rev, latestMod.version);
-  this.body = info;
+  this.jsonp = info;
 };

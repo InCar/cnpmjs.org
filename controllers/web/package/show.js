@@ -1,19 +1,4 @@
-/**!
- * cnpmjs.org - controllers/web/package/show.js
- *
- * Copyright(c) cnpmjs.org and other contributors.
- * MIT Licensed
- *
- * Authors:
- *  dead_horse <dead_horse@qq.com> (http://deadhorse.me)
- *  fengmk2 <fengmk2@gmail.com> (http://fengmk2.github.com)
- */
-
 'use strict';
-
-/**
- * Module dependencies.
- */
 
 var debug = require('debug')('cnpmjs.org:controllers:web:package:show');
 var bytes = require('bytes');
@@ -68,7 +53,8 @@ module.exports = function* show(next) {
         }
       }
       yield this.render('package_unpublished', {
-        package: data
+        package: data,
+        title: 'Package - ' + name
       });
       return;
     }
@@ -124,7 +110,7 @@ module.exports = function* show(next) {
     pkg.repository = null;
   }
   if (pkg.repository && pkg.repository.url) {
-    pkg.repository.weburl = giturl.parse(pkg.repository.url) || pkg.repository.url;
+    pkg.repository.weburl = /^https?:\/\//.test(pkg.repository.url) ? pkg.repository.url : (giturl.parse(pkg.repository.url) || pkg.repository.url);
   }
   if (!pkg.bugs) {
     pkg.bugs = {};
@@ -178,10 +164,21 @@ module.exports = function* show(next) {
       pkg.engines[k] = {
         version: engine,
         title: k + ': ' + engine,
-        badgeURL: 'https://img.shields.io/badge/' + encodeURIComponent(k) +
+        badgeURL: config.badgePrefixURL + '/' + encodeURIComponent(k) +
           '-' + encodeURIComponent(engine) + '-' + color + '.svg?style=flat-square',
       };
     }
+  }
+
+  if (pkg._publish_on_cnpm) {
+    pkg.isPrivate = true;
+  } else {
+    pkg.isPrivate = false;
+    // add security check badge
+    pkg.snyk = {
+      badge: `${config.snykUrl}/test/npm/${pkg.name}/badge.svg?style=flat-square`,
+      url: `${config.snykUrl}/test/npm/${pkg.name}`,
+    };
   }
 
   yield this.render('package', {

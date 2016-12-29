@@ -1,19 +1,6 @@
-/**!
- * cnpmjs.org - services/package.js
- *
- * Copyright(c) fengmk2 and other contributors.
- * MIT Licensed
- *
- * Authors:
- *   fengmk2 <fengmk2@gmail.com> (http://fengmk2.github.com)
- */
-
 'use strict';
 
-/**
- * Module dependencies.
- */
-
+var semver = require('semver');
 var models = require('../models');
 var common = require('./common');
 var Tag = models.Tag;
@@ -27,20 +14,23 @@ var ModuleUnpublished = models.ModuleUnpublished;
 var NpmModuleMaintainer = models.NpmModuleMaintainer;
 
 // module
+var _parseRow = function (row) {
+  if (row.package.indexOf('%7B%22') === 0) {
+    // now store package will encodeURIComponent() after JSON.stringify
+    row.package = decodeURIComponent(row.package);
+  }
+  row.package = JSON.parse(row.package);
+  if (typeof row.publish_time === 'string') {
+    // pg bigint is string
+    row.publish_time = Number(row.publish_time);
+  }
+};
 
 // module:read
 function parseRow(row) {
   if (row && row.package) {
     try {
-      if (row.package.indexOf('%7B%22') === 0) {
-        // now store package will encodeURIComponent() after JSON.stringify
-        row.package = decodeURIComponent(row.package);
-      }
-      row.package = JSON.parse(row.package);
-      if (typeof row.publish_time === 'string') {
-        // pg bigint is string
-        row.publish_time = Number(row.publish_time);
-      }
+      _parseRow(row);
     } catch (e) {
       console.warn('parse package error: %s, id: %s version: %s, error: %s', row.name, row.id, row.version, e);
     }
@@ -53,7 +43,7 @@ function stringifyPackage(pkg) {
 }
 
 exports.getModuleById = function* (id) {
-  var row = yield Module.find(Number(id));
+  var row = yield Module.findById(Number(id));
   parseRow(row);
   return row;
 };
@@ -70,6 +60,25 @@ exports.getModuleByTag = function* (name, tag) {
     return null;
   }
   return yield* exports.getModule(tag.name, tag.version);
+};
+
+exports.getModuleByRange = function* (name, range) {
+  var rows = yield exports.listModulesByName(name, [ 'id', 'version' ]);
+  var versionMap = {};
+  var versions = rows.map(function(row) {
+    versionMap[row.version] = row;
+    return row.version;
+  }).filter(function(version) {
+    return semver.valid(version);
+  });
+
+  var version = semver.maxSatisfying(versions, range);
+  if (!versionMap[version]) {
+    return null;
+  }
+
+  var id = versionMap[version].id;
+  return yield exports.getModuleById(id);
 };
 
 exports.getLatestModule = function* (name) {
@@ -128,7 +137,7 @@ exports.listModules = function* (names) {
       id: ids
     },
     attributes: [
-      'name', 'description'
+      'name', 'description', 'version',
     ]
   });
   return rows;
@@ -196,7 +205,7 @@ exports.listPublicModuleNamesByUser = function* (username) {
 };
 
 // start must be a date or timestamp
-exports.listPublicModuleNamesSince = function* (start) {
+exports.listPublicModuleNamesSince = function* listPublicModuleNamesSince(start) {
   if (!(start instanceof Date)) {
     start = new Date(Number(start));
   }
@@ -219,23 +228,25 @@ exports.listAllPublicModuleNames = function* () {
   var sql = 'SELECT DISTINCT(name) AS name FROM tag ORDER BY name';
   var rows = yield models.query(sql);
   return rows.filter(function (row) {
-    return row.name[0] !== '@';
+    return !common.isPrivatePackage(row.name);
   }).map(function (row) {
     return row.name;
   });
 };
 
-exports.listModulesByName = function* (moduleName) {
+exports.listModulesByName = function* (moduleName, attributes) {
   var mods = yield Module.findAll({
     where: {
       name: moduleName
     },
-    order: [ ['id', 'DESC'] ]
+    order: [ ['id', 'DESC'] ],
+    attributes,
   });
-  return mods.map(function (mod) {
+
+  for (var mod of mods) {
     parseRow(mod);
-    return mod;
-  });
+  }
+  return mods;
 };
 
 exports.getModuleLastModified = function* (name) {
@@ -280,7 +291,7 @@ exports.saveModule = function* (mod) {
   item.dist_size = dist.size;
   item.description = description;
 
-  if (item.isDirty) {
+  if (item.changed()) {
     item = yield item.save();
   }
   var result = {
@@ -312,7 +323,7 @@ exports.saveModule = function* (mod) {
 };
 
 exports.updateModulePackage = function* (id, pkg) {
-  var mod = yield Module.find(Number(id));
+  var mod = yield Module.findById(Number(id));
   if (!mod) {
     // not exists
     return null;
@@ -365,8 +376,9 @@ exports.updateModuleLastModified = function* (name) {
   if (!row) {
     return null;
   }
-  row.gmt_modified = new Date();
-  return yield row.save(['gmt_modified']);
+  // gmt_modified is readonly, we must use setDataValue
+  row.setDataValue('gmt_modified', new Date());
+  return yield row.save();
 };
 
 exports.removeModulesByName = function* (name) {
@@ -403,7 +415,7 @@ exports.addModuleTag = function* (name, tag, version) {
   }
   row.module_id = mod.id;
   row.version = version;
-  if (row.isDirty) {
+  if (row.changed()) {
     return yield row.save();
   }
   return row;
@@ -500,8 +512,7 @@ exports.updatePrivateModuleMaintainers = function* (name, usernames) {
 };
 
 function* getMaintainerModel(name) {
-  var isPrivatePackage = yield* common.isPrivatePackage(name);
-  return isPrivatePackage ? PrivateModuleMaintainer : NpmModuleMaintainer;
+  return common.isPrivatePackage(name) ? PrivateModuleMaintainer : NpmModuleMaintainer;
 }
 
 exports.listMaintainers = function* (name) {
@@ -580,7 +591,7 @@ exports.addKeyword = function* (data) {
     item = ModuleKeyword.build(data);
   }
   item.description = data.description;
-  if (item.isDirty) {
+  if (item.changed()) {
     // make sure object will change, otherwise will cause empty sql error
     // @see https://github.com/cnpm/cnpmjs.org/issues/533
     return yield item.save();

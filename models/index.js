@@ -1,11 +1,9 @@
 /**!
- * cnpmjs.org - models/index.js
- *
  * Copyright(c) fengmk2 and other contributors.
  * MIT Licensed
  *
  * Authors:
- *   fengmk2 <fengmk2@gmail.com> (http://fengmk2.github.com)
+ *   fengmk2 <fengmk2@gmail.com> (http://fengmk2.com)
  */
 
 'use strict';
@@ -15,7 +13,6 @@
  */
 
 var path = require('path');
-var Sequelize = require('sequelize');
 var sequelize = require('../common/sequelize');
 
 function load(name) {
@@ -40,7 +37,7 @@ module.exports = {
 
   query: function* (sql, args) {
     var options = { replacements: args };
-    var data = yield this.sequelize.query(sql, options).spread();
+    var data = yield this.sequelize.query(sql, options);
     if (/select /i.test(sql)) {
       return data[0];
     }

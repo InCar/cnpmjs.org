@@ -5,7 +5,7 @@
  * MIT Licensed
  *
  * Authors:
- *   fengmk2 <fengmk2@gmail.com> (http://fengmk2.github.com)
+ *   fengmk2 <fengmk2@gmail.com> (http://fengmk2.com)
  */
 
 'use strict';
@@ -19,7 +19,7 @@ var sleep = require('co-sleep');
 var Package = require('../../services/package');
 var utils = require('../utils');
 
-describe('services/package.test.js', function () {
+describe('test/services/package.test.js', function () {
   function* createModule(name, version, user, tag) {
     var sourcePackage = {
       version: version,
@@ -124,7 +124,7 @@ describe('services/package.test.js', function () {
       var mods = yield* Package.listPublicModulesByUser('listPublicModuleNamesByUser-user');
       mods.should.length(3);
       mods.forEach(function (mod) {
-        mod.toJSON().should.have.keys('name', 'description');
+        mod.toJSON().should.have.keys('name', 'description', 'version');
         mod.name.should.containEql('listPublicModuleNamesByUser-module');
       });
     });
@@ -160,12 +160,11 @@ describe('services/package.test.js', function () {
     });
 
     it('should work', function* () {
-      yield* createModule('@cnpm-test-scope1/test-listPrivateModules-module-1', '1.0.0');
-      yield* createModule('@cnpm-test-scope1/test-listPrivateModules-module-2', '1.0.0');
-      var modules = yield* Package.listPrivateModulesByScope('@cnpm-test-scope1');
-      // console.log(modules[0].toJSON())
+      yield* createModule('@cnpm-test/test-listPrivateModules-module-1', '1.0.0');
+      yield* createModule('@cnpm-test/test-listPrivateModules-module-2', '1.0.0');
+      var modules = yield* Package.listPrivateModulesByScope('@cnpm-test');
       modules.should.length(2);
-      modules[0].name.should.containEql('@cnpm-test-scope1/test-listPrivateModules-module-');
+      modules[0].name.should.containEql('@cnpm-test/test-listPrivateModules-module-');
     });
   });
 
@@ -329,6 +328,36 @@ describe('services/package.test.js', function () {
       // get by name and version
       var r = yield* Package.getModule(mod.name, mod.version);
       r.package.readme.should.equal(sourcePackage.readme);
+    });
+  });
+
+  describe('getModuleByRange()', function() {
+    it('should get undefined when not match semver range', function* () {
+      yield* createModule('test-getModuleByRange-module-0', '1.0.0');
+      yield* createModule('test-getModuleByRange-module-0', '1.1.0');
+      yield* createModule('test-getModuleByRange-module-0', '2.0.0');
+      var mod = yield* Package.getModuleByRange('test-getModuleByRange-module-0', '~2.1.0');
+      should.not.exist(mod);
+    });
+
+    it('should get package with semver range', function* () {
+      yield* createModule('test-getModuleByRange-module-1', '1.0.0');
+      yield* createModule('test-getModuleByRange-module-1', '1.1.0');
+      yield* createModule('test-getModuleByRange-module-1', '2.0.0');
+      var mod = yield* Package.getModuleByRange('test-getModuleByRange-module-1', '1');
+      mod.package.name.should.equal(mod.name);
+      mod.name.should.equal('test-getModuleByRange-module-1');
+      mod.version.should.equal('1.1.0');
+    });
+
+    it('should get package with semver range when have invalid version', function* () {
+      yield* createModule('test-getModuleByRange-module-2', '1.0.0');
+      yield* createModule('test-getModuleByRange-module-2', '1.1.0');
+      yield* createModule('test-getModuleByRange-module-2', 'next');
+      var mod = yield* Package.getModuleByRange('test-getModuleByRange-module-2', '1');
+      mod.package.name.should.equal(mod.name);
+      mod.name.should.equal('test-getModuleByRange-module-2');
+      mod.version.should.equal('1.1.0');
     });
   });
 

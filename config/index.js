@@ -1,19 +1,4 @@
-/**!
- * cnpmjs.org - config/index.js
- *
- * Copyright(c) cnpmjs.org and other contributors.
- * MIT Licensed
- *
- * Authors:
- *  dead_horse <dead_horse@qq.com>
- *  fengmk2 <m@fengmk2.com> (http://fengmk2.com)
- */
-
 'use strict';
-
-/**
- * Module dependencies.
- */
 
 var mkdirp = require('mkdirp');
 var copy = require('copy-to');
@@ -28,6 +13,7 @@ var dataDir = path.join(process.env.HOME || root, '.cnpmjs.org');
 
 var config = {
   version: version,
+  dataDir: dataDir,
 
   /**
    * Cluster mode
@@ -95,7 +81,8 @@ var config = {
     }
   },
 
-  logoURL: '//ww4.sinaimg.cn/large/69c1d4acgw1ebfly5kjlij208202oglr.jpg', // cnpm logo image url
+  logoURL: 'https://os.alipayobjects.com/rmsportal/oygxuIUkkrRccUz.jpg', // cnpm logo image url
+  adBanner: '',
   customReadmeFile: '', // you can use your custom readme file instead the cnpm one
   customFooter: '', // you can add copyright and site total script html here
   npmClientName: 'cnpm', // use `${name} install package`
@@ -160,7 +147,7 @@ var config = {
   enablePrivate: false,
 
   // registry scopes, if don't set, means do not support scopes
-  scopes: [ '@cnpm', '@cnpmtest' ],
+  scopes: [ '@cnpm', '@cnpmtest', '@cnpm-test' ],
 
   // some registry already have some private packages in global scope
   // but we want to treat them as scoped private packages,
@@ -175,12 +162,13 @@ var config = {
   // cnpm wont directly sync from this one
   // but sometimes will request it for some package infomations
   // please don't change it if not necessary
-  officialNpmRegistry: 'https://registry.npmjs.org',
+  officialNpmRegistry: 'https://registry.npmjs.com',
+  officialNpmReplicate: 'https://replicate.npmjs.com',
 
   // sync source, upstream registry
   // If you want to directly sync from official npm's registry
   // please drop them an email first
-  sourceNpmRegistry: 'http://registry.npm.taobao.org',
+  sourceNpmRegistry: 'https://registry.npm.taobao.org',
 
   // upstream registry is base on cnpm/cnpmjs.org or not
   // if your upstream is official npm registry, please turn it off
@@ -210,7 +198,12 @@ var config = {
   // sync devDependencies or not, default is false
   syncDevDependencies: false,
 
+  // changes streaming sync
+  syncChangesStream: false,
+  handleSyncRegistry: 'http://127.0.0.1:7001',
+
   // badge subject on http://shields.io/
+  badgePrefixURL: 'https://img.shields.io/badge',
   badgeSubject: 'cnpm',
 
   // If config.anonymousVisit set to false
@@ -219,12 +212,20 @@ var config = {
   anonymousVisit: true
 
   // custom user service, @see https://github.com/cnpm/cnpmjs.org/wiki/Use-Your-Own-User-Authorization
+  // when you not intend to ingegrate with your company's user system, then use null, it would
+  // use the default cnpm user system
   userService: null,
 
   // always-auth https://docs.npmjs.com/misc/config#always-auth
   // Force npm to always require authentication when accessing the registry, even for GET requests.
   alwaysAuth: false,
 
+  // if you're behind firewall, need to request through http proxy, please set this
+  // e.g.: `httpProxy: 'http://proxy.mycompany.com:8080'`
+  httpProxy: null,
+
+  // snyk.io root url
+  snykUrl: 'https://snyk.io',
 };
 
 if (process.env.NODE_ENV !== 'test') {

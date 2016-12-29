@@ -1,22 +1,7 @@
-/*!
- * cnpmjs.org - sync/sync_exist.js
- *
- * Copyright(c) cnpmjs.org and other contributors.
- * MIT Licensed
- *
- * Authors:
- *  dead_horse <dead_horse@qq.com> (http://deadhorse.me)
- */
-
 'use strict';
-
-/**
- * Module dependencies.
- */
 
 var debug = require('debug')('cnpmjs.org:sync:sync_exist');
 var Status = require('./status');
-var ms = require('humanize-ms');
 var thunkify = require('thunkify-wrap');
 var config = require('../config');
 var npmService = require('../services/npm');
@@ -34,7 +19,7 @@ function intersection(arrOne, arrTwo) {
     map[name] = true;
   });
   arrTwo.forEach(function (name) {
-    map[name] && results.push(name);
+    map[name] === true && results.push(name);
   });
   return results;
 }
@@ -51,7 +36,7 @@ module.exports = function* sync() {
 
   var allPackages;
   if (!info.last_exist_sync_time) {
-    var pkgs = yield* npmService.getShort();
+    var pkgs = yield npmService.getShort();
     debug('First time sync all packages from official registry, got %d packages', pkgs.length);
     if (info.last_sync_module) {
       // start from last success
@@ -63,16 +48,10 @@ module.exports = function* sync() {
     }
     allPackages = pkgs;
   } else {
-    debug('sync new module from last exist sync time: %s', info.last_sync_time);
-    var data = yield* npmService.getAllSince(info.last_exist_sync_time - ms('10m'));
-    if (!data) {
-      allPackages = [];
-    }
-    if (data._updated) {
-      syncTime = data._updated;
-      delete data._updated;
-    }
-    allPackages = Object.keys(data);
+    debug('sync new module from last exist sync time: %s', info.last_exist_sync_time);
+    var result = yield npmService.fetchUpdatesSince(info.last_exist_sync_time);
+    allPackages = result.names;
+    syncTime = result.lastModified;
   }
 
   var packages = intersection(existPackages, allPackages);
@@ -83,7 +62,7 @@ module.exports = function* sync() {
       fails: []
     };
   }
-  debug('Total %d packages to sync', packages.length);
+  debug('Total %d packages to sync, top 10: %j', packages.length, packages.slice(0, 10));
 
   var worker = new SyncModuleWorker({
     username: 'admin',

@@ -1,18 +1,4 @@
-/*!
- * cnpmjs.org - sync/status.js
- *
- * Copyright(c) cnpmjs.org and other contributors.
- * MIT Licensed
- *
- * Authors:
- *  dead_horse <dead_horse@qq.com> (http://deadhorse.me)
- */
-
 'use strict';
-
-/**
- * Module dependencies.
- */
 
 var debug = require('debug')('cnpmjs.org:sync:status');
 var co = require('co');
@@ -36,7 +22,7 @@ Status.prototype.log = function (syncDone) {
     lastSyncModule: this.lastSyncModule,
   };
   co(function* () {
-    yield* Total.updateSyncNum(params);
+    yield Total.updateSyncNum(params);
   }).catch(function () {});
 };
 

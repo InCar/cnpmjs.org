@@ -1,20 +1,5 @@
-/*!
- * cnpmjs.org - sync/sync_all.js
- *
- * Copyright(c) cnpmjs.org and other contributors.
- * MIT Licensed
- *
- * Authors:
- *  dead_horse <dead_horse@qq.com> (http://deadhorse.me)
- */
-
 'use strict';
 
-/**
- * Module dependencies.
- */
-
-var ms = require('humanize-ms');
 var thunkify = require('thunkify-wrap');
 var config = require('../config');
 var Status = require('./status');
@@ -40,19 +25,6 @@ function* getFirstSyncPackages(lastSyncModule) {
   }
 }
 
-/**
- * get all the packages that update time > lastSyncTime
- * @param {Number} lastSyncTime
- */
-function* getCommonSyncPackages(lastSyncTime) {
-  var data = yield* npmService.getAllSince(lastSyncTime);
-  if (!data) {
-    return [];
-  }
-  delete data._updated;
-  return Object.keys(data);
-}
-
 module.exports = function* sync() {
   var syncTime = Date.now();
   var info = yield* totalService.getTotalInfo();
@@ -66,7 +38,9 @@ module.exports = function* sync() {
     logger.syncInfo('First time sync all packages from official registry');
     packages = yield* getFirstSyncPackages(info.last_sync_module);
   } else {
-    packages = yield* getCommonSyncPackages(info.last_sync_time - ms('10m'));
+    var result = yield npmService.fetchUpdatesSince(info.last_sync_time);
+    syncTime = result.lastModified;
+    packages = result.names;
   }
 
   packages = packages || [];
@@ -83,19 +57,22 @@ module.exports = function* sync() {
     concurrency: config.syncConcurrency,
     syncUpstreamFirst: false,
   });
-  Status.init({need: packages.length}, worker);
+  Status.init({
+    need: packages.length,
+  }, worker);
   worker.start();
   var end = thunkify.event(worker);
   yield end();
 
-  logger.syncInfo('All packages sync done, successes %d, fails %d',
-      worker.successes.length, worker.fails.length);
+  logger.syncInfo('All packages sync done, successes %d, fails %d, updates %d',
+      worker.successes.length, worker.fails.length, worker.updates.length);
   //only when all succss, set last sync time
   if (!worker.fails.length) {
-    yield* totalService.setLastSyncTime(syncTime);
+    yield totalService.setLastSyncTime(syncTime);
   }
   return {
     successes: worker.successes,
-    fails: worker.fails
+    fails: worker.fails,
+    updates: worker.updates,
   };
 };

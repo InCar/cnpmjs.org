@@ -1,19 +1,4 @@
-/**!
- * cnpmjs.org - routes/registry.js
- *
- * Copyright(c) cnpmjs.org and other contributors.
- * MIT Licensed
- *
- * Authors:
- *  dead_horse <dead_horse@qq.com>
- *  fengmk2 <fengmk2@gmail.com> (http://fengmk2.github.com)
- */
-
-"use strict";
-
-/**
- * Module dependencies.
- */
+'use strict';
 
 var limit = require('../middleware/limit');
 var login = require('../middleware/login');
@@ -22,6 +7,7 @@ var publishable = require('../middleware/publishable');
 var syncByInstall = require('../middleware/sync_by_install');
 var editable = require('../middleware/editable');
 var existsPackage = require('../middleware/exists_package');
+var unpublishable = require('../middleware/unpublishable');
 
 var showTotal = require('../controllers/total');
 
@@ -29,6 +15,7 @@ var listAll = require('../controllers/registry/package/list_all');
 var listShorts = require('../controllers/registry/package/list_shorts');
 var listSince = require('../controllers/registry/package/list_since');
 var listAllVersions = require('../controllers/registry/package/list');
+var listDependents = require('../controllers/registry/package/list_dependents');
 var getOneVersion = require('../controllers/registry/package/show');
 var savePackage = require('../controllers/registry/package/save');
 var tag = require('../controllers/registry/package/tag');
@@ -37,6 +24,7 @@ var removeOneVersion = require('../controllers/registry/package/remove_version')
 var updatePackage = require('../controllers/registry/package/update');
 var downloadPackage = require('../controllers/registry/package/download');
 var downloadTotal = require('../controllers/registry/package/download_total');
+var listPackagesByUser = require('../controllers/registry/package/list_by_user');
 
 var addUser = require('../controllers/registry/user/add');
 var showUser = require('../controllers/registry/user/show');
@@ -66,9 +54,9 @@ function routes(app) {
 
   // module
   // scope package: params: [$name]
-  app.get(/^\/(@[\w\-\.]+\/[\w\-\.]+)$/, login4Get, syncByInstall, listAllVersions);
+  app.get(/^\/(@[\w\-\.]+\/[^\/]+)$/, login4Get, syncByInstall, listAllVersions);
   // scope package: params: [$name, $version]
-  app.get(/^\/(@[\w\-\.]+\/[\w\-\.]+)\/([\w\.\-]+)$/, login4Get, syncByInstall, getOneVersion);
+  app.get(/^\/(@[\w\-\.]+\/[\w\-\.]+)\/([^\/]+)$/, login4Get, syncByInstall, getOneVersion);
 
   app.get('/:name', login4Get, syncByInstall, listAllVersions);
   app.get('/:name/:version', login4Get, syncByInstall, getOneVersion);
@@ -78,7 +66,9 @@ function routes(app) {
   app.put('/:name', login, publishable, savePackage);
 
   // sync from source npm
+  app.put(/^\/(@[\w\-\.]+\/[\w\-\.]+)\/sync$/, sync.sync);
   app.put('/:name/sync', sync.sync);
+  app.get(/^\/(@[\w\-\.]+\/[\w\-\.]+)\/sync\/log\/(\d+)$/, sync.getSyncLog);
   app.get('/:name/sync/log/:id', sync.getSyncLog);
 
   // add tag
@@ -93,16 +83,16 @@ function routes(app) {
 
   // delete tarball and remove one version
   app.delete(/^\/(@[\w\-\.]+\/[\w\-\.]+)\/download\/(@[\w\-\.]+\/[\w\-\.]+)\/\-rev\/([\w\-\.]+)$/,
-    login, publishable, editable, removeOneVersion);
-  app.delete('/:name/download/:filename/-rev/:rev', login, publishable, editable, removeOneVersion);
+    login, unpublishable, removeOneVersion);
+  app.delete('/:name/download/:filename/-rev/:rev', login, unpublishable, removeOneVersion);
 
   // update module, unpublish will PUT this
   app.put(/^\/(@[\w\-\.]+\/[\w\-\.]+)\/\-rev\/([\w\-\.]+)$/, login, publishable, editable, updatePackage);
   app.put('/:name/-rev/:rev', login, publishable, editable, updatePackage);
 
   // remove all versions
-  app.delete(/^\/(@[\w\-\.]+\/[\w\-\.]+)\/\-rev\/([\w\-\.]+)$/, login, publishable, editable, removePackage);
-  app.delete('/:name/-rev/:rev', login, publishable, editable, removePackage);
+  app.delete(/^\/(@[\w\-\.]+\/[\w\-\.]+)\/\-rev\/([\w\-\.]+)$/, login, unpublishable, removePackage);
+  app.delete('/:name/-rev/:rev', login, unpublishable, removePackage);
 
   // try to create a new user
   // https://registry.npmjs.org/-/user/org.couchdb.user:fengmk2
@@ -112,10 +102,16 @@ function routes(app) {
 
   // list all packages of user
   app.get('/-/by-user/:user', userPackage.list);
+  app.get('/-/users/:user/packages', listPackagesByUser);
 
   // download times
   app.get('/downloads/range/:range/:name', downloadTotal);
+  app.get(/^\/downloads\/range\/([^\/]+)\/(@[\w\-\.]+\/[\w\-\.]+)$/, downloadTotal);
   app.get('/downloads/range/:range', downloadTotal);
+
+  // GET /-/package/:pkg/dependents
+  app.get('/-/package/:name/dependents', existsPackage, listDependents);
+  app.get(/^\/\-\/package\/(@[\w\-\.]+\/[\w\-\.]+)\/dependents$/, existsPackage, listDependents);
 
   // GET /-/package/:pkg/dist-tags -- returns the package's dist-tags
   app.get('/-/package/:name/dist-tags', existsPackage, tags.index);

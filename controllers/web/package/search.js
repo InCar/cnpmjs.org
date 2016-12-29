@@ -6,7 +6,7 @@
  *
  * Authors:
  *  dead_horse <dead_horse@qq.com> (http://deadhorse.me)
- *  fengmk2 <fengmk2@gmail.com> (http://fengmk2.github.com)
+ *  fengmk2 <m@fengmk2.com> (http://fengmk2.com)
  */
 
 'use strict';
@@ -21,8 +21,16 @@ var packageService = require('../../../services/package');
 module.exports = function* search() {
   var params = this.params;
   var word = params.word || params[0];
+  var limit = Number(this.query.limit) || 100;
+
+  if (limit > 10000) {
+    limit = 10000;
+  }
+
   debug('search %j', word);
-  var result = yield* packageService.search(word);
+  var result = yield* packageService.search(word, {
+    limit: limit
+  });
 
   var match = null;
   for (var i = 0; i < result.searchMatchs.length; i++) {
@@ -35,13 +43,12 @@ module.exports = function* search() {
 
   // return a json result
   if (this.query && this.query.type === 'json') {
-    this.body = {
+    this.jsonp = {
       keyword: word,
       match: match,
       packages: result.searchMatchs,
       keywords: result.keywordMatchs,
     };
-    this.type = 'application/json; charset=utf-8';
     return;
   }
   yield this.render('search', {

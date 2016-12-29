@@ -1,13 +1,3 @@
-/**!
- * cnpmjs.org - test/init_db.js
- *
- * Copyright(c) fengmk2 and other contributors.
- * MIT Licensed
- *
- * Authors:
- *   fengmk2 <fengmk2@gmail.com> (http://fengmk2.github.com)
- */
-
 'use strict';
 
 /**
@@ -22,7 +12,7 @@ var config = require('../config');
 
 // init db first
 var initscript = path.join(__dirname, '..', 'models', 'init_script.js');
-var cmd = ['node', '--harmony', initscript, 'true',
+var cmd = ['node', initscript, 'true',
   config.database.dialect, config.database.port, config.database.username].join(' ');
 console.log('$ %s', cmd);
 var stdout = childProcess.execSync(cmd);
@@ -35,13 +25,22 @@ var usernames = [
   'cnpmjstest101',
   'cnpmjstest102',
   'cnpmjstest103',
+  ['cnpmjstest104', 'cnpmjs:test104'],
   'cnpmjstest10', // admin
   'cnpmjstestAdmin2', // other admin
   'cnpmjstestAdmin3', // other admin
+  'cnpmjstest_list_by_user',
 ];
 
 var count = usernames.length;
 usernames.forEach(function (name) {
+  var pass;
+  if (Array.isArray(name)) {
+    name = name[0];
+    pass = name[1];
+  } else {
+    pass = name;
+  }
   var user = User.build({
     name: name,
     email: 'fengmk2@gmail.com',
@@ -49,7 +48,7 @@ usernames.forEach(function (name) {
     rev: '1',
   });
   user.salt = crypto.randomBytes(30).toString('hex');
-  user.password_sha = User.createPasswordSha(name, user.salt);
+  user.password_sha = User.createPasswordSha(pass, user.salt);
   user.save().then(function () {
     count--;
     if (count === 0) {

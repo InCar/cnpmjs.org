@@ -1,4 +1,358 @@
 
+2.19.1 / 2016-12-29
+==================
+
+  * fix: try to use the best repository url (#1102)
+
+2.19.0 / 2016-12-21
+==================
+
+  * feat: keyword search with limit to support keywords > 100 (#1097)
+
+2.18.0 / 2016-12-05
+==================
+
+  * fix: support downloads total on scope package (#1088)
+  * fix: try to sync from official replicate (#1076)
+  * feat: add change password script (#1070)
+  * test: skip always fail tests
+  * test: add node v7
+  * feat: show more sync info
+
+2.17.2 / 2016-11-13
+==================
+
+  * fix: ignore long package name on unpublished sync (#1067)
+
+2.17.1 / 2016-11-08
+==================
+
+  * fix: add publish_time for private packages (#1061)
+
+2.17.0 / 2016-11-03
+==================
+
+  * feat: make snyk.io url configable (#1058)
+
+2.16.2 / 2016-09-27
+==================
+
+  * fix: try to use config.registryHost first on setDownloadURL (#1044)
+
+2.16.1 / 2016-08-22
+==================
+
+  * refactor: refine publishable's code (#1022)
+
+2.16.0 / 2016-08-22
+==================
+
+  * feat: admin can do everything (#1021)
+
+2.15.0 / 2016-08-22
+==================
+
+  * feat: return dist-tag on package registry ([#1020](https://github.com/cnpm/cnpmjs.org/issues/1020))
+  * chore(package): update supertest to version 2.0.0 ([#1004](https://github.com/cnpm/cnpmjs.org/issues/1004))
+
+2.14.0 / 2016-08-04
+==================
+
+  * feat: password may contains ":" ([#999](https://github.com/cnpm/cnpmjs.org/issues/999))
+  * fix: limit sync fails email notice ([#1006](https://github.com/cnpm/cnpmjs.org/issues/1006))
+
+2.13.0 / 2016-07-26
+==================
+
+  * feat: enable maxrequests middleware ([#1003](https://github.com/cnpm/cnpmjs.org/issues/1003))
+
+2.12.2 / 2016-07-11
+==================
+
+  * fix: getModuleByRange don't list all packages ([#990](https://github.com/cnpm/cnpmjs.org/issues/990))
+  * fix: should show new version package count ([#984](https://github.com/cnpm/cnpmjs.org/issues/984))
+
+2.12.1 / 2016-07-01
+==================
+
+  * fix: make sure chagnes stream destroy ([#982](https://github.com/cnpm/cnpmjs.org/issues/982))
+  * chore(package): update semver to version 5.2.0 ([#978](https://github.com/cnpm/cnpmjs.org/issues/978))
+  * deps: use ^ instead of ~ ([#976](https://github.com/cnpm/cnpmjs.org/issues/976))
+  * chore(package): update mini-logger to version 1.1.1 ([#973](https://github.com/cnpm/cnpmjs.org/issues/973))
+
+2.12.0 / 2016-06-26
+==================
+
+  * fix: logger seperator should be one EOL ([#972](https://github.com/cnpm/cnpmjs.org/issues/972))
+  * feat: add security check badge for public package ([#971](https://github.com/cnpm/cnpmjs.org/issues/971))
+
+2.11.0 / 2016-06-25
+==================
+
+  * feat: add changes stream syncer ([#970](https://github.com/cnpm/cnpmjs.org/issues/970))
+  * chore(package): update pg to version 5.1.0 ([#953](https://github.com/cnpm/cnpmjs.org/issues/953))
+
+2.10.1 / 2016-06-05
+==================
+
+  * fix: should sync missing public scoped package on install ([#946](https://github.com/cnpm/cnpmjs.org/issues/946))
+  * chore(package): update bytes to version 2.4.0 ([#943](https://github.com/cnpm/cnpmjs.org/issues/943))
+  * userService ([#926](https://github.com/cnpm/cnpmjs.org/issues/926))
+  * chore(package): update should to version 8.4.0 ([#928](https://github.com/cnpm/cnpmjs.org/issues/928))
+  * chore(package): update humanize-ms to version 1.2.0 ([#927](https://github.com/cnpm/cnpmjs.org/issues/927))
+  * chore(package): update kcors to version 1.2.1 ([#918](https://github.com/cnpm/cnpmjs.org/issues/918))
+  * chore(package): update urllib to version 2.9.0 ([#898](https://github.com/cnpm/cnpmjs.org/issues/898))
+
+2.10.0 / 2016-04-15
+==================
+
+  * feat: show tarball url on package page ([#894](https://github.com/cnpm/cnpmjs.org/issues/894))
+  * chore(package): update koa-mock to version 1.6.1 ([#891](https://github.com/cnpm/cnpmjs.org/issues/891))
+
+2.9.5 / 2016-04-12
+==================
+
+  * fix: change logo url to a better https source
+  * fix: http://cnpmjs.org/package/fms pre style ([#739](https://github.com/cnpm/cnpmjs.org/issues/739))
+
+2.9.4 / 2016-04-09
+==================
+
+  * fix: don't sync constructor package on exists mode ([#883](https://github.com/cnpm/cnpmjs.org/issues/883))
+  * Update utility to version 1.7.0 🚀
+  * chore: update sponsor link
+
+2.9.3 / 2016-04-05
+==================
+
+  * fix: use better diff time to check sync status
+  * Update sequelize to version 3.21.0 🚀
+  * chore(package): update agentkeepalive to version 2.1.0
+  * chore(package): update pg to version 4.5.2
+
+2.9.2 / 2016-03-29
+==================
+
+  * fix: override antd for ul & ol list number & icon.
+
+2.9.1 / 2016-03-29
+==================
+
+  * refactor: add more ua info on syncer
+
+2.9.0 / 2016-03-26
+==================
+
+  * feat: only admin can unpublish
+  * chore(package): update gravatar to version 1.5.0
+  * chore(package): update sequelize to version 3.20.0
+  * fix: fix save download count unqiue constraint error
+  * chore(package): update moment to version 2.12.0
+
+2.8.1 / 2016-03-07
+==================
+
+  * fix: only send warning email if no any sync data after 24h
+  * chore(package): update kcors to version 1.1.0
+  * chore(package): update koa to version 1.2.0
+  * chore(package): update urllib to version 2.8.0
+
+2.8.0 / 2016-02-23
+==================
+
+  * fix: convert `*` to latest tag
+  * deps: upgrade deps and remove node 2.0.0 support
+  * doc: update sponsors on readme
+  * fix: update copyright year
+  * doc: fix disturl typo
+  * deps: sequelize@3.19.0
+
+2.7.1 / 2016-02-01
+==================
+
+  * fix(semver): when have invalid version([#817](https://github.com/cnpm/cnpmjs.org/issues/817))
+
+2.7.0 / 2016-02-01
+==================
+
+  * test: fix all test cases
+  * test: fix unpublish
+  * test: add complex range test case
+  * feat: support semver([#816](https://github.com/cnpm/cnpmjs.org/issues/816))
+
+2.6.2 / 2016-01-19
+==================
+
+  * feat: list & show support jsonp
+  * chore(package): update urllib to version 2.7.0
+  * Delete install.md
+
+2.6.1 / 2016-01-12
+==================
+
+  * fix: source registry is not cnpm, ignore check status
+
+2.6.0 / 2016-01-12
+==================
+
+  * feat(sync): monitor sync status
+  * chore(package): update agentkeepalive to version 2.0.3
+  * fix SequelizeDatabaseError: ER_NO_SUCH_TABLE: Table 'qnpm.total' doesn't exist\nreproduce this bug:\nthe first startup of cnpmjs.org
+  * chore(package): update moment to version 2.11.0
+  * chore(package): update xss to version 0.2.10
+  * chore(package): update pg-hstore to version 2.3.2
+  * chore(package): update mini-logger to version 1.1.0
+  * chore(package): update urllib to version 2.6.0
+  * fix: row.package will json parse error
+  * remove bluebird
+  * chore(package): update utility to version 1.6.0
+
+2.5.1 / 2015-12-02
+==================
+
+ * chore(package): update bluebird to version 3.0.6
+ * fix: SequelizeDatabaseError
+ * fix(dist_tag): disable delete latest tag
+ * feat: count total private pkgs
+ * fix: use isoweek. a week start from monday
+ * chore(package): update xss to version 0.2.8
+ * chore(package): update semver to version 5.1.0
+
+2.5.0 / 2015-11-17
+==================
+
+ * test: add node v5
+ * feat(sync): sync deleted user
+ * Update show.js
+ * chore(package): update bytes to version 2.2.0
+ * do not sync inner username
+ * gzip static file
+ * chore(package): update bytes to version 2.1.0
+ * chore(package): update is-type-of to version 1.0.0
+ * Update static.js
+ * chore(package): update cfork to version 1.4.0
+ * chore(package): update bluebird to version 3.0.5
+
+2.4.1 / 2015-10-27
+==================
+
+ * fix: improve registry index page performance with cache
+ * Configable badge URL prefix.
+ * chore(package): update koa-mock to version 1.5.0
+ * chore(package): update urllib to version 2.5.0
+ * chore(package): update co to version 4.6.0
+ * chore(package): update semver to version 5.0.3
+
+2.4.0 / 2015-10-21
+==================
+
+ * feat(registry): add package's dependents api
+ * fix: show package's dependents
+ * chore(package): update utility to version 1.5.0
+ * chore(package): update bluebird to version 2.10.2
+
+2.3.1 / 2015-10-15
+==================
+
+ * refactor: remove gnode
+ * deps: upgrade giturl
+ * Some fixes
+
+2.3.0 / 2015-10-15
+==================
+
+ * Add dev dependencies.
+ * Package page fix.
+ * refactor: add more sync log
+ * Add mock data.
+ * refactor: add more sync log
+ * Fix sidebar overflow.
+ * Merge pull request [#680](https://github.com/cnpm/cnpmjs.org/issues/680) from ibigbug/ant-design
+ * Clean code.
+ * Indent.
+ * chore(package): update debug to version 2.2.0
+ * chore(package): update should to version 7.1.0
+ * chore(package): update koa to version 1.1.0
+ * Remove default adBanner.
+ * Package pages.
+ * Common styles.
+ * search page.
+ * Sync page.
+ * Profile page antd style.
+ * Unpublished pkg page style.
+ * Add page title for unpubed pkg.
+ * Index page style use antd.
+ * chore(package): update pg to version 4.4.2
+ * chore(package): update cfork to version 1.3.1
+ * chore(package): update moment to version 2.10.6
+ * feat(badge): Use qiniu cdn
+
+2.2.1 / 2015-09-30
+==================
+
+ * test: use istanbul
+ * pref: move out try/catch block
+ * fix: support nfs.url is generator
+
+2.2.0 / 2015-09-29
+==================
+
+ * feat: list packages by username
+ * test: use codecov
+ * feat(badge): support custom subject
+ * fix(sync): add recover logic
+ * feat(sync): add sync scripts
+
+2.1.5 / 2015-09-05
+==================
+
+ * fix: only sync update packages
+
+2.1.4 / 2015-09-05
+==================
+
+ * fix: support new array and old map format both
+ * fix: /-/all/since had been redirect to /-/all/static/today.json
+ * fix(list): let koa-etag to caculate the etag
+
+2.1.3 / 2015-08-18
+==================
+
+ * fix: sync public scope package download url is wrong
+ * fix: default registry change to taobao registry
+
+2.1.2 / 2015-08-09
+==================
+
+ * fix(syncer): sync worker pkg null bug
+ * feat(web): add downloads badge
+
+2.1.1 / 2015-07-27
+==================
+
+ * fix: fix private scope package detect
+ * fix: dont sync if upstream is npm registry
+ * fix(sync): support sync public scope package
+ * test: fix fails tests
+ * fix: ignore 503 server error
+ * fix: ignore sync 503 server error
+
+2.1.0 / 2015-07-08
+==================
+
+ * feat(web): search support jsonp
+ * fix function name
+
+2.0.0 / 2015-05-11
+==================
+
+ * fix: real download as stream
+ * add custom ad banner config
+ * add sponsors: ucloud.cn
+ * fix small typo
+ * feat(urllib): support http_proxy
+ * force using https links
+
 2.0.0-rc.15 / 2015-02-15
 ==================
 
@@ -10,10 +364,10 @@
 
  * feat: support always-auth
  * fix mysql select args = [] bug
- * fix #597 sequelize raw query.
+ * fix [#597](https://github.com/cnpm/cnpmjs.org/issues/597) sequelize raw query.
  * fix(markdown): hotfix markdown-it cpu problem
  * feat: upgrade to co4
- * use kcors fixes #594
+ * use kcors fixes [#594](https://github.com/cnpm/cnpmjs.org/issues/594)
 
 2.0.0-rc.13 / 2015-02-04
 ==================

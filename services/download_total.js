@@ -1,11 +1,9 @@
 /**!
- * cnpmjs.org - services/download_total.js
- *
- * Copyright(c) fengmk2 and other contributors.
+ * Copyright(c) cnpm and other contributors.
  * MIT Licensed
  *
  * Authors:
- *   fengmk2 <fengmk2@gmail.com> (http://fengmk2.github.com)
+ *   fengmk2 <fengmk2@gmail.com> (http://fengmk2.com)
  */
 
 'use strict';
@@ -32,6 +30,27 @@ exports.getModuleTotal = function* (name, start, end) {
   return formatRows(rows, start, end);
 };
 
+exports.getTotalByName = function* (name) {
+  var rows = yield DownloadTotal.findAll({
+    where: {
+      name: name
+    }
+  });
+  var count = 0;
+  rows.forEach(function (row) {
+    for (var i = 1; i <= 31; i++) {
+      var day = i < 10 ? '0' + i : String(i);
+      var field = 'd' + day;
+      var val = row[field];
+      if (typeof val === 'string') {
+        val = utility.toSafeNumber(val);
+      }
+      count += val;
+    }
+  });
+  return count;
+};
+
 exports.plusModuleTotal = function* (data) {
   var yearMonth = parseYearMonth(data.date);
   // all module download total
@@ -53,7 +72,7 @@ exports.plusModuleTotal = function* (data) {
     row[field] = utility.toSafeNumber(row[field]);
   }
   row[field] += data.count;
-  if (row.isDirty) {
+  if (row.changed()) {
     yield row.save();
   }
 
@@ -75,14 +94,14 @@ exports.plusModuleTotal = function* (data) {
     row[field] = utility.toSafeNumber(row[field]);
   }
   row[field] += data.count;
-  if (row.isDirty) {
+  if (row.changed()) {
     return yield row.save();
   }
   return row;
 };
 
 exports.getTotal = function* (start, end) {
-  return yield* exports.getModuleTotal('__all__', start, end);
+  return yield exports.getModuleTotal('__all__', start, end);
 };
 
 function parseYearMonth(date) {

@@ -21,7 +21,7 @@ var config = require('../config');
 
 exports.sync = function* () {
   var username = this.user.name || 'anonymous';
-  var name = this.params.name;
+  var name = this.params.name || this.params[0];
   var type = 'package';
   if (name.indexOf(':') > 0) {
     // user:fengmk2
@@ -70,8 +70,13 @@ exports.sync = function* () {
 };
 
 exports.getSyncLog = function* (next) {
-  var logId = this.params.id;
+  var logId = Number(this.params.id || this.params[1]);
   var offset = Number(this.query.offset) || 0;
+
+  if (!logId) { // NaN
+    this.status = 404;
+    return;
+  }
   var row = yield* Log.get(logId);
   if (!row) {
     return yield* next;

@@ -1,20 +1,7 @@
-/**!
- * cnpmjs.org - services/npm.js
- *
- * Copyright(c) cnpmjs.org and other contributors.
- * MIT Licensed
- *
- * Authors:
- *   fengmk2 <fengmk2@gmail.com> (http://fengmk2.github.com)
- *   dead_horse <dead_horse@qq.com> (http://deadhorse.me)
- */
-
 'use strict';
 
-/**
- * Module dependencies.
- */
-
+var ms = require('humanize-ms');
+var cleanNpmMetadata = require('normalize-registry-metadata');
 var urllib = require('../common/urllib');
 var config = require('../config');
 
@@ -33,13 +20,18 @@ function* request(url, options) {
   url = registry + url;
   var r;
   try {
-    r = yield urllib.requestThunk(url, options);
+    r = yield urllib.request(url, options);
+    // https://github.com/npm/registry/issues/87#issuecomment-261450090
+    if (options.dataType === 'json' && r.data && config.officialNpmReplicate === registry) {
+      cleanNpmMetadata(r.data);
+    }
   } catch (err) {
     var statusCode = err.status || -1;
     var data = err.data || '[empty]';
     if (err.name === 'JSONResponseFormatError' && statusCode >= 500) {
       err.name = 'NPMServerError';
-      err.message = 'Status ' + statusCode + ', ' + data.toString();
+      err.status = statusCode;
+      err.message = 'Url: ' + url + ', Status ' + statusCode + ', ' + data.toString();
     }
     throw err;
   }
@@ -68,10 +60,95 @@ exports.get = function* (name) {
   return data;
 };
 
+exports.fetchUpdatesSince = function* (lastSyncTime, timeout) {
+  var lastModified = lastSyncTime - ms('10m');
+  var data = yield exports.getAllSince(lastModified, timeout);
+  var result = {
+    lastModified: lastSyncTime,
+    names: [],
+  };
+  if (!data) {
+    return result;
+  }
+  if (Array.isArray(data)) {
+    // support https://registry.npmjs.org/-/all/static/today.json
+    var maxModified;
+    data.forEach(function (pkg) {
+      if (pkg.time && pkg.time.modified) {
+        var modified = Date.parse(pkg.time.modified);
+        if (modified >= lastModified) {
+          result.names.push(pkg.name);
+        }
+        if (!maxModified || modified > maxModified) {
+          maxModified = modified;
+        }
+      } else {
+        result.names.push(pkg.name);
+      }
+    });
+    if (maxModified) {
+      result.lastModified = maxModified;
+    }
+  } else {
+    // /-/all/since
+    if (data._updated) {
+      result.lastModified = data._updated;
+      delete data._updated;
+    }
+    result.names = Object.keys(data);
+  }
+  return result;
+};
+
+exports.fetchAllPackagesSince = function* (timestamp) {
+  var r = yield request('/-/all/static/all.json', {
+    registry: 'http://registry.npmjs.org',
+    timeout: 600000
+  });
+  // {"_updated":1441520402174,"0":{"name":"0","dist-tags
+  // "time":{"modified":"2014-06-17T06:38:43.495Z"}
+  var data = r.data;
+  var result = {
+    lastModified: timestamp,
+    lastModifiedName: null,
+    names: [],
+  };
+  var maxModified;
+  for (var key in data) {
+    if (key === '_updated') {
+      continue;
+    }
+    var pkg = data[key];
+    if (!pkg.time || !pkg.time.modified) {
+      continue;
+    }
+    var modified = Date.parse(pkg.time.modified);
+    if (modified >= timestamp) {
+      result.names.push(pkg.name);
+    }
+    if (!maxModified || modified > maxModified) {
+      maxModified = modified;
+      result.lastModifiedName = pkg.name;
+    }
+  }
+  if (maxModified) {
+    result.lastModified = maxModified;
+  }
+  return result;
+};
+
 exports.getAllSince = function* (startkey, timeout) {
   var r = yield* request('/-/all/since?stale=update_after&startkey=' + startkey, {
     timeout: timeout || 300000
   });
+  return r.data;
+};
+
+exports.getAllToday = function* (timeout) {
+  var r = yield* request('/-/all/static/today.json', {
+    timeout: timeout || 300000
+  });
+  // data is array: see https://registry.npmjs.org/-/all/static/today.json
   return r.data;
 };
 

@@ -1,18 +1,4 @@
-/**!
- * cnpmjs.org - test/controllers/registry/package/list.test.js
- *
- * Copyright(c) cnpmjs.org and other contributors.
- * MIT Licensed
- *
- * Authors:
- *  fengmk2 <fengmk2@gmail.com> (http://fengmk2.github.com)
- */
-
 'use strict';
-
-/**
- * Module dependencies.
- */
 
 var should = require('should');
 var request = require('supertest');
@@ -23,7 +9,7 @@ var app = require('../../../../servers/registry');
 var utils = require('../../../utils');
 var config = require('../../../../config');
 
-describe('controllers/registry/package/list.test.js', function () {
+describe('test/controllers/registry/package/list.test.js', () => {
   afterEach(mm.restore);
 
   before(function (done) {
@@ -85,8 +71,16 @@ describe('controllers/registry/package/list.test.js', function () {
         fengmk2: true,
         foouser: true
       });
+      data.versions['0.0.1'].publish_time.should.equal(data.versions['0.0.1']._cnpm_publish_time);
       done();
     });
+  });
+
+  it('should support jsonp', function (done) {
+    request(app.listen())
+    .get('/@cnpmtest/testmodule-list-1?callback=jsonp')
+    .expect(/jsonp\(\{/)
+    .expect(200, done);
   });
 
   it('should 404 when package not exists', function (done) {
@@ -128,20 +122,20 @@ describe('controllers/registry/package/list.test.js', function () {
     }, done);
   });
 
-  describe('unpublished', function () {
-    before(function (done) {
-      utils.sync('tfs', done);
+  describe.skip('unpublished', () => {
+    before(done => {
+      mm(config, 'syncModel', 'all');
+      utils.sync('moduletest1', done);
     });
 
-    it('should show unpublished info', function (done) {
+    it('should show unpublished info', done => {
       mm(config, 'syncModel', 'all');
       request(app.listen())
-      .get('/tfs')
+      .get('/moduletest1')
       .expect(404, function (err, res) {
         should.not.exist(err);
         var data = res.body;
-        data.time.unpublished.name.should.equal('fengmk2');
-        data.time.unpublished.description.should.equal('tfs');
+        data.time.unpublished.name.should.equal('dead_horse');
         done();
       });
     });

@@ -1,19 +1,4 @@
-/**!
- * cnpmjs.org - routes/web.js
- *
- * Copyright(c) cnpmjs.org and other contributors.
- * MIT Licensed
- *
- * Authors:
- *  dead_horse <dead_horse@qq.com>
- *  fengmk2 <fengmk2@gmail.com> (http://fengmk2.github.com)
- */
-
-"use strict";
-
-/**
- * Module dependencies.
- */
+'use strict';
 
 var showPackage = require('../controllers/web/package/show');
 var searchPackage = require('../controllers/web/package/search');
@@ -42,15 +27,19 @@ function routes(app) {
 
   app.get('/~:name', showUser);
 
+  app.get(/\/sync\/(@[\w\-\.]+\/[\w\-\.]+)$/, showSync);
   app.get('/sync/:name', showSync);
   app.get('/sync', showSync);
+  app.put(/\/sync\/(@[\w\-\.]+\/[\w\-\.]+)$/, sync.sync);
   app.put('/sync/:name', sync.sync);
 
+  app.get(/\/sync\/(@[\w\-\.]+\/[\w\-\.]+)\/log\/(\d+)$/, sync.getSyncLog);
   app.get('/sync/:name/log/:id', sync.getSyncLog);
 
   app.get('/_list/search/search', searchRange);
 
   app.get(/^\/badge\/v\/([@\w\-\.\/]+)\.svg$/, badge.version);
+  app.get(/^\/badge\/d\/([@\w\-\.\/]+)\.svg$/, badge.downloads);
 }
 
 module.exports = routes;
